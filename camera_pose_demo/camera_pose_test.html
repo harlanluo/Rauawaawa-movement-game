@@ -1,0 +1,1019 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Camera Pose Test</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: #1d2a27;
+      background: #f3f6f5;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+    }
+
+    main {
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 32px 0;
+    }
+
+    h1,
+    h2,
+    p {
+      margin-top: 0;
+    }
+
+    h1 {
+      margin-bottom: 8px;
+      font-size: clamp(1.6rem, 3vw, 2.25rem);
+    }
+
+    .intro {
+      max-width: 70ch;
+      color: #52615d;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      margin: 24px 0 16px;
+    }
+
+    button {
+      min-height: 44px;
+      padding: 10px 18px;
+      border: 0;
+      border-radius: 8px;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    button:focus-visible {
+      outline: 3px solid #f6a700;
+      outline-offset: 3px;
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.55;
+    }
+
+    #startButton {
+      color: #fff;
+      background: #12654f;
+    }
+
+    #stopButton {
+      color: #fff;
+      background: #774237;
+    }
+
+    .status {
+      display: inline-flex;
+      gap: 9px;
+      align-items: center;
+      min-height: 44px;
+      padding: 9px 14px;
+      border: 1px solid #b8c2bf;
+      border-radius: 8px;
+      background: #fff;
+      font-weight: 650;
+    }
+
+    .status-dot {
+      width: 12px;
+      height: 12px;
+      flex: 0 0 auto;
+      border-radius: 50%;
+      background: #818b88;
+    }
+
+    .status[data-state="detected"] .status-dot {
+      background: #16844f;
+      box-shadow: 0 0 0 4px rgb(22 132 79 / 18%);
+    }
+
+    .status[data-state="warning"] .status-dot {
+      background: #c17a00;
+    }
+
+    .status[data-state="error"] .status-dot {
+      background: #b42318;
+    }
+
+    .model-status {
+      margin: 0 0 18px;
+      color: #52615d;
+      font-size: 0.95rem;
+    }
+
+    .test-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 2fr) minmax(270px, 1fr);
+      gap: 22px;
+      align-items: start;
+    }
+
+    .camera-panel,
+    .debug-panel,
+    .pose-targets {
+      border: 1px solid #d1d9d6;
+      border-radius: 12px;
+      background: #fff;
+      box-shadow: 0 4px 18px rgb(32 56 49 / 7%);
+    }
+
+    .camera-panel {
+      overflow: hidden;
+    }
+
+    .camera-stage {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      overflow: hidden;
+      background: #17201e;
+    }
+
+    #cameraVideo,
+    #poseCanvas {
+      position: absolute;
+      inset: 0;
+      display: block;
+      width: 100%;
+      height: 100%;
+      transform: scaleX(-1);
+      transform-origin: center;
+    }
+
+    #cameraVideo {
+      object-fit: fill;
+    }
+
+    #poseCanvas {
+      pointer-events: none;
+    }
+
+    .camera-note {
+      margin: 0;
+      padding: 12px 16px;
+      color: #52615d;
+      font-size: 0.9rem;
+    }
+
+    .debug-panel {
+      padding: 18px;
+    }
+
+    .debug-panel h2 {
+      margin-bottom: 6px;
+      font-size: 1.2rem;
+    }
+
+    .debug-help {
+      margin-bottom: 16px;
+      color: #65726f;
+      font-size: 0.9rem;
+    }
+
+    .landmark-list {
+      display: grid;
+      gap: 8px;
+      margin: 0;
+    }
+
+    .landmark-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #e6ebe9;
+    }
+
+    .landmark-row:last-child {
+      padding-bottom: 0;
+      border-bottom: 0;
+    }
+
+    dt {
+      font-weight: 650;
+    }
+
+    dd {
+      margin: 0;
+      color: #65726f;
+      font-variant-numeric: tabular-nums;
+      text-align: right;
+    }
+
+    dd.detected {
+      color: #11663f;
+    }
+
+    .pose-targets {
+      margin-top: 22px;
+      padding: 20px;
+    }
+
+    .pose-targets h2 {
+      margin-bottom: 8px;
+      font-size: 1.35rem;
+    }
+
+    .current-pose {
+      margin-bottom: 8px;
+      font-size: 1.1rem;
+      font-weight: 700;
+    }
+
+    .current-pose[data-recognised="true"] {
+      color: #11663f;
+    }
+
+    .pose-availability {
+      min-height: 1.4em;
+      margin-bottom: 14px;
+      color: #8a5a00;
+      font-size: 0.9rem;
+    }
+
+    .pose-card-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .pose-card {
+      min-height: 76px;
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px;
+      border: 2px solid #d7dfdc;
+      border-radius: 10px;
+      background: #f8faf9;
+      font-weight: 700;
+      transition: border-color 160ms ease, background-color 160ms ease, box-shadow 160ms ease;
+    }
+
+    .pose-card-check {
+      display: none;
+      color: #11663f;
+      font-size: 1.25rem;
+    }
+
+    .pose-card.is-active {
+      border-color: #16844f;
+      background: #e8f7ef;
+      box-shadow: 0 0 0 3px rgb(22 132 79 / 13%);
+      color: #0d5936;
+    }
+
+    .pose-card.is-active .pose-card-check {
+      display: inline;
+    }
+
+    .pose-debug {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px 20px;
+      margin: 14px 0 0;
+      color: #65726f;
+      font-size: 0.82rem;
+    }
+
+    @media (max-width: 800px) {
+      main {
+        width: min(100% - 24px, 760px);
+        padding: 20px 0;
+      }
+
+      .test-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .pose-card-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 520px) {
+      .pose-card-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>Camera Pose Test</h1>
+    <p class="intro">Standalone webcam and single-person skeleton tracking prototype. Camera frames are processed locally in the browser and are not recorded by this page.</p>
+
+    <div class="controls">
+      <button id="startButton" type="button" disabled>Start Camera</button>
+      <button id="stopButton" type="button" disabled>Stop Camera</button>
+      <div id="status" class="status" data-state="neutral" role="status" aria-live="polite">
+        <span class="status-dot" aria-hidden="true"></span>
+        <span id="statusText">Camera not started</span>
+      </div>
+    </div>
+
+    <p id="modelStatus" class="model-status" role="status" aria-live="polite">Loading MediaPipe pose model…</p>
+
+    <div class="test-grid">
+      <section class="camera-panel" aria-label="Live camera preview">
+        <div id="cameraStage" class="camera-stage">
+          <video id="cameraVideo" autoplay playsinline muted></video>
+          <canvas id="poseCanvas" aria-hidden="true"></canvas>
+        </div>
+        <p class="camera-note">The preview and skeleton are mirrored together for a natural selfie view.</p>
+      </section>
+
+      <aside class="debug-panel" aria-labelledby="debugHeading">
+        <h2 id="debugHeading">Landmark status</h2>
+        <p class="debug-help">Visibility is reported by MediaPipe from 0.00 to 1.00.</p>
+        <dl id="landmarkList" class="landmark-list"></dl>
+      </aside>
+    </div>
+
+    <section class="pose-targets" aria-labelledby="poseTargetsHeading">
+      <h2 id="poseTargetsHeading">Pose Targets</h2>
+      <p id="currentPose" class="current-pose" data-recognised="false" role="status" aria-live="polite">Current Pose: None</p>
+      <p id="poseAvailability" class="pose-availability">Start the camera to test a pose.</p>
+
+      <div class="pose-card-grid">
+        <div class="pose-card" data-pose="Both Arms Raised"><span>Both Arms Raised</span><span class="pose-card-check" aria-hidden="true">✓</span></div>
+        <div class="pose-card" data-pose="Arms Out to Sides"><span>Arms Out to Sides</span><span class="pose-card-check" aria-hidden="true">✓</span></div>
+        <div class="pose-card" data-pose="Left Arm Raised"><span>Left Arm Raised</span><span class="pose-card-check" aria-hidden="true">✓</span></div>
+        <div class="pose-card" data-pose="Right Arm Raised"><span>Right Arm Raised</span><span class="pose-card-check" aria-hidden="true">✓</span></div>
+        <div class="pose-card" data-pose="Left Knee Raised"><span>Left Knee Raised</span><span class="pose-card-check" aria-hidden="true">✓</span></div>
+        <div class="pose-card" data-pose="Right Knee Raised"><span>Right Knee Raised</span><span class="pose-card-check" aria-hidden="true">✓</span></div>
+      </div>
+
+      <p class="pose-debug" aria-live="polite">
+        <span>Candidate Pose: <span id="candidatePose">None</span></span>
+        <span>Confirmed Pose: <span id="confirmedPose">None</span></span>
+      </p>
+    </section>
+  </main>
+
+  <script type="module">
+    import {
+      DrawingUtils,
+      FilesetResolver,
+      PoseLandmarker
+    } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/vision_bundle.mjs";
+
+    const WASM_ROOT = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/wasm";
+    const MODEL_URL = "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_full/float16/latest/pose_landmarker_full.task";
+    const VISIBILITY_THRESHOLD = 0.5;
+    const POSE_HOLD_DURATION_MS = 600;
+    const POSE_RELEASE_GRACE_MS = 400;
+
+    const LANDMARK = Object.freeze({
+      LEFT_SHOULDER: 11,
+      RIGHT_SHOULDER: 12,
+      LEFT_ELBOW: 13,
+      RIGHT_ELBOW: 14,
+      LEFT_WRIST: 15,
+      RIGHT_WRIST: 16,
+      LEFT_HIP: 23,
+      RIGHT_HIP: 24,
+      LEFT_KNEE: 25,
+      RIGHT_KNEE: 26,
+      LEFT_ANKLE: 27,
+      RIGHT_ANKLE: 28
+    });
+
+    const IMPORTANT_LANDMARKS = [
+      { index: 11, label: "Left Shoulder" },
+      { index: 12, label: "Right Shoulder" },
+      { index: 13, label: "Left Elbow" },
+      { index: 14, label: "Right Elbow" },
+      { index: 15, label: "Left Wrist" },
+      { index: 16, label: "Right Wrist" },
+      { index: 23, label: "Left Hip" },
+      { index: 24, label: "Right Hip" }
+    ];
+
+    const startButton = document.querySelector("#startButton");
+    const stopButton = document.querySelector("#stopButton");
+    const status = document.querySelector("#status");
+    const statusText = document.querySelector("#statusText");
+    const modelStatus = document.querySelector("#modelStatus");
+    const cameraStage = document.querySelector("#cameraStage");
+    const video = document.querySelector("#cameraVideo");
+    const canvas = document.querySelector("#poseCanvas");
+    const landmarkList = document.querySelector("#landmarkList");
+    const currentPoseElement = document.querySelector("#currentPose");
+    const poseAvailability = document.querySelector("#poseAvailability");
+    const candidatePoseElement = document.querySelector("#candidatePose");
+    const confirmedPoseElement = document.querySelector("#confirmedPose");
+    const poseCards = [...document.querySelectorAll(".pose-card")];
+    const canvasContext = canvas.getContext("2d");
+    const drawingUtils = new DrawingUtils(canvasContext);
+
+    let poseLandmarker = null;
+    let mediaStream = null;
+    let frameRequestId = null;
+    let frameRequestType = null;
+    let lastVideoTime = -1;
+    let isStarting = false;
+    let isRunning = false;
+    let pendingPose = null;
+    let pendingPoseSince = 0;
+    let confirmedPose = null;
+    let confirmedPoseLastSeen = 0;
+
+    const debugValues = new Map();
+    for (const item of IMPORTANT_LANDMARKS) {
+      const row = document.createElement("div");
+      row.className = "landmark-row";
+
+      const term = document.createElement("dt");
+      term.textContent = item.label;
+
+      const value = document.createElement("dd");
+      value.textContent = "not detected";
+      value.id = `landmark-${item.index}`;
+
+      row.append(term, value);
+      landmarkList.append(row);
+      debugValues.set(item.index, value);
+    }
+
+    /** Load the official MediaPipe Tasks Vision runtime and one-person pose model. */
+    async function initializePoseLandmarker() {
+      modelStatus.textContent = "Loading MediaPipe pose model…";
+
+      try {
+        const vision = await FilesetResolver.forVisionTasks(WASM_ROOT);
+
+        try {
+          poseLandmarker = await createLandmarker(vision, "GPU");
+          modelStatus.textContent = "Pose model ready (Full model, GPU delegate).";
+        } catch (gpuError) {
+          console.warn("GPU delegate unavailable; retrying with CPU.", gpuError);
+          poseLandmarker = await createLandmarker(vision, "CPU");
+          modelStatus.textContent = "Pose model ready (Full model, CPU fallback).";
+        }
+
+        startButton.disabled = false;
+      } catch (error) {
+        console.error("MediaPipe model failed to load.", error);
+        modelStatus.textContent = "Pose model failed to load. Check your internet connection, then reload the page.";
+        updateStatus("MediaPipe model unavailable", "error");
+        startButton.disabled = true;
+      }
+    }
+
+    function createLandmarker(vision, delegate) {
+      return PoseLandmarker.createFromOptions(vision, {
+        baseOptions: {
+          modelAssetPath: MODEL_URL,
+          delegate
+        },
+        runningMode: "VIDEO",
+        numPoses: 1,
+        minPoseDetectionConfidence: 0.5,
+        minPosePresenceConfidence: 0.5,
+        minTrackingConfidence: 0.5,
+        outputSegmentationMasks: false
+      });
+    }
+
+    /** Request video only after a deliberate button click and start one stream. */
+    async function startCamera() {
+      if (isStarting || isRunning || mediaStream) {
+        return;
+      }
+
+      if (!poseLandmarker) {
+        updateStatus("Pose model is not ready", "warning");
+        return;
+      }
+
+      if (!navigator.mediaDevices?.getUserMedia) {
+        updateStatus("Camera unavailable in this browser", "error");
+        return;
+      }
+
+      isStarting = true;
+      startButton.disabled = true;
+      stopButton.disabled = true;
+      updateStatus("Requesting camera permission…", "warning");
+
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: false,
+          video: {
+            facingMode: "user",
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
+          }
+        });
+
+        // A stop may occur while the permission prompt is open.
+        if (!isStarting) {
+          stream.getTracks().forEach((track) => track.stop());
+          return;
+        }
+
+        mediaStream = stream;
+        video.srcObject = stream;
+        stream.getVideoTracks()[0]?.addEventListener("ended", handleStreamEnded, { once: true });
+
+        await waitForVideoMetadata();
+        await video.play();
+
+        cameraStage.style.aspectRatio = `${video.videoWidth} / ${video.videoHeight}`;
+        resizeCanvas();
+        lastVideoTime = -1;
+        isRunning = true;
+        isStarting = false;
+        stopButton.disabled = false;
+        updateStatus("Camera ready", "neutral");
+        scheduleNextFrame();
+      } catch (error) {
+        console.error("Unable to start camera.", error);
+        isStarting = false;
+        releaseMediaStream();
+        startButton.disabled = !poseLandmarker;
+        stopButton.disabled = true;
+        showCameraError(error);
+      }
+    }
+
+    function waitForVideoMetadata() {
+      if (video.readyState >= HTMLMediaElement.HAVE_METADATA) {
+        return Promise.resolve();
+      }
+
+      return new Promise((resolve, reject) => {
+        const handleLoaded = () => {
+          cleanup();
+          resolve();
+        };
+        const handleError = () => {
+          cleanup();
+          reject(new Error("The video stream could not be loaded."));
+        };
+        const cleanup = () => {
+          video.removeEventListener("loadedmetadata", handleLoaded);
+          video.removeEventListener("error", handleError);
+        };
+
+        video.addEventListener("loadedmetadata", handleLoaded, { once: true });
+        video.addEventListener("error", handleError, { once: true });
+      });
+    }
+
+    /** Stop frame processing and release every active camera track. */
+    function stopCamera() {
+      isStarting = false;
+      isRunning = false;
+      cancelScheduledFrame();
+      releaseMediaStream();
+      clearCanvas();
+      updateDebugPanel(null);
+      resetPoseRecognition();
+      startButton.disabled = !poseLandmarker;
+      stopButton.disabled = true;
+      updateStatus("Camera not started", "neutral");
+    }
+
+    function releaseMediaStream() {
+      const stream = mediaStream || video.srcObject;
+      if (stream instanceof MediaStream) {
+        stream.getTracks().forEach((track) => track.stop());
+      }
+      mediaStream = null;
+      video.pause();
+      video.srcObject = null;
+      lastVideoTime = -1;
+    }
+
+    function handleStreamEnded() {
+      if (isRunning || mediaStream) {
+        stopCamera();
+        updateStatus("Video stream ended", "warning");
+      }
+    }
+
+    /** Process at most one decoded video frame at a time with a monotonic timestamp. */
+    function processVideoFrame() {
+      frameRequestId = null;
+
+      if (!isRunning || !poseLandmarker || video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) {
+        if (isRunning) {
+          scheduleNextFrame();
+        }
+        return;
+      }
+
+      try {
+        if (video.currentTime !== lastVideoTime) {
+          lastVideoTime = video.currentTime;
+          const result = poseLandmarker.detectForVideo(video, performance.now());
+          drawPose(result);
+          updateDebugPanel(result);
+          updatePoseRecognition(result);
+
+          if (result.landmarks?.length > 0) {
+            updateStatus("Person detected", "detected");
+          } else {
+            updateStatus("No person detected", "warning");
+          }
+        }
+      } catch (error) {
+        console.error("Pose detection failed.", error);
+        updateStatus("Pose detection error", "error");
+      }
+
+      if (isRunning) {
+        scheduleNextFrame();
+      }
+    }
+
+    function scheduleNextFrame() {
+      if (frameRequestId !== null || !isRunning) {
+        return;
+      }
+
+      if (typeof video.requestVideoFrameCallback === "function") {
+        frameRequestType = "video";
+        frameRequestId = video.requestVideoFrameCallback(processVideoFrame);
+      } else {
+        frameRequestType = "animation";
+        frameRequestId = requestAnimationFrame(processVideoFrame);
+      }
+    }
+
+    function cancelScheduledFrame() {
+      if (frameRequestId === null) {
+        return;
+      }
+
+      if (frameRequestType === "video" && typeof video.cancelVideoFrameCallback === "function") {
+        video.cancelVideoFrameCallback(frameRequestId);
+      } else {
+        cancelAnimationFrame(frameRequestId);
+      }
+
+      frameRequestId = null;
+      frameRequestType = null;
+    }
+
+    /** Draw landmarks in source coordinates; CSS mirrors this canvas with the video. */
+    function drawPose(result) {
+      clearCanvas();
+
+      const pose = result.landmarks?.[0];
+      if (!pose) {
+        return;
+      }
+
+      drawingUtils.drawConnectors(pose, PoseLandmarker.POSE_CONNECTIONS, {
+        color: "#42e6b1",
+        lineWidth: 3
+      });
+      drawingUtils.drawLandmarks(pose, {
+        color: "#fff4a8",
+        fillColor: "#156e58",
+        lineWidth: 1,
+        radius: 4
+      });
+    }
+
+    function updateDebugPanel(result) {
+      const pose = result?.landmarks?.[0];
+
+      for (const item of IMPORTANT_LANDMARKS) {
+        const element = debugValues.get(item.index);
+        const landmark = pose?.[item.index];
+        const visibility = landmark?.visibility;
+        const isDetected = landmark && (visibility === undefined || visibility >= VISIBILITY_THRESHOLD);
+
+        if (isDetected) {
+          element.textContent = visibility === undefined
+            ? "detected"
+            : `detected (${visibility.toFixed(2)})`;
+          element.classList.add("detected");
+        } else {
+          element.textContent = "not detected";
+          element.classList.remove("detected");
+        }
+      }
+    }
+
+    /** Evaluate one frame separately from camera processing and skeleton drawing. */
+    function updatePoseRecognition(result) {
+      const landmarks = result?.landmarks?.[0];
+      const candidate = landmarks ? detectPoseCandidate(landmarks) : null;
+
+      poseAvailability.textContent = landmarks
+        ? (hasVisibleLowerBody(landmarks) ? "" : "Lower body not visible enough for knee poses")
+        : "Waiting for a visible person.";
+
+      updatePoseStability(candidate, performance.now());
+    }
+
+    /** Return only the highest-priority matching pose. */
+    function detectPoseCandidate(landmarks) {
+      const poseRules = [
+        ["Both Arms Raised", isBothArmsRaised],
+        ["Arms Out to Sides", isArmsOutToSides],
+        ["Left Knee Raised", isLeftKneeRaised],
+        ["Right Knee Raised", isRightKneeRaised],
+        ["Left Arm Raised", isLeftArmRaised],
+        ["Right Arm Raised", isRightArmRaised]
+      ];
+
+      for (const [poseName, rule] of poseRules) {
+        if (rule(landmarks)) {
+          return poseName;
+        }
+      }
+
+      return null;
+    }
+
+    function isBothArmsRaised(landmarks) {
+      return isArmRaised(landmarks, "left") && isArmRaised(landmarks, "right");
+    }
+
+    function isLeftArmRaised(landmarks) {
+      return isArmRaised(landmarks, "left")
+        && canEvaluateArmHeight(landmarks, "right")
+        && !isArmClearlyRaised(landmarks, "right");
+    }
+
+    function isRightArmRaised(landmarks) {
+      return isArmRaised(landmarks, "right")
+        && canEvaluateArmHeight(landmarks, "left")
+        && !isArmClearlyRaised(landmarks, "left");
+    }
+
+    function isArmRaised(landmarks, side) {
+      const points = getArmLandmarks(landmarks, side);
+      if (!areVisible(points.shoulder, points.elbow, points.wrist)) {
+        return false;
+      }
+
+      const raisedMargin = Math.max(0.035, getBodyScale(landmarks) * 0.16);
+      return points.wrist.y < points.shoulder.y - raisedMargin
+        && calculateAngle(points.shoulder, points.elbow, points.wrist) >= 125;
+    }
+
+    /** A visibility-aware height check prevents a hidden opposite wrist becoming a one-arm match. */
+    function isArmClearlyRaised(landmarks, side) {
+      const points = getArmLandmarks(landmarks, side);
+      if (!canEvaluateArmHeight(landmarks, side)) {
+        return false;
+      }
+
+      const raisedMargin = Math.max(0.035, getBodyScale(landmarks) * 0.16);
+      return points.wrist.y < points.shoulder.y - raisedMargin;
+    }
+
+    function canEvaluateArmHeight(landmarks, side) {
+      const points = getArmLandmarks(landmarks, side);
+      return areVisible(points.shoulder, points.wrist);
+    }
+
+    function isArmsOutToSides(landmarks) {
+      const left = getArmLandmarks(landmarks, "left");
+      const right = getArmLandmarks(landmarks, "right");
+      if (!areVisible(left.shoulder, left.elbow, left.wrist, right.shoulder, right.elbow, right.wrist)) {
+        return false;
+      }
+
+      const bodyScale = getBodyScale(landmarks);
+      const verticalTolerance = Math.max(0.055, bodyScale * 0.35);
+      const shoulderWidth = distance2D(left.shoulder, right.shoulder);
+      const minimumOutwardReach = Math.max(0.045, shoulderWidth * 0.55);
+
+      return Math.abs(left.wrist.y - left.shoulder.y) <= verticalTolerance
+        && Math.abs(right.wrist.y - right.shoulder.y) <= verticalTolerance
+        && isOutwardFromShoulder(left.wrist, left.shoulder, right.shoulder, minimumOutwardReach)
+        && isOutwardFromShoulder(right.wrist, right.shoulder, left.shoulder, minimumOutwardReach)
+        && calculateAngle(left.shoulder, left.elbow, left.wrist) >= 135
+        && calculateAngle(right.shoulder, right.elbow, right.wrist) >= 135;
+    }
+
+    function isLeftKneeRaised(landmarks) {
+      return isKneeRaised(landmarks, "left");
+    }
+
+    function isRightKneeRaised(landmarks) {
+      return isKneeRaised(landmarks, "right");
+    }
+
+    function isKneeRaised(landmarks, side) {
+      if (!hasVisibleLowerBody(landmarks)) {
+        return false;
+      }
+
+      const isLeft = side === "left";
+      const raisedHip = landmarks[isLeft ? LANDMARK.LEFT_HIP : LANDMARK.RIGHT_HIP];
+      const raisedKnee = landmarks[isLeft ? LANDMARK.LEFT_KNEE : LANDMARK.RIGHT_KNEE];
+      const supportHip = landmarks[isLeft ? LANDMARK.RIGHT_HIP : LANDMARK.LEFT_HIP];
+      const supportKnee = landmarks[isLeft ? LANDMARK.RIGHT_KNEE : LANDMARK.LEFT_KNEE];
+      const raisedHipToKnee = raisedKnee.y - raisedHip.y;
+      const supportHipToKnee = supportKnee.y - supportHip.y;
+      const bodyScale = getBodyScale(landmarks);
+
+      return supportHipToKnee > bodyScale * 0.55
+        && raisedHipToKnee < supportHipToKnee * 0.62
+        && raisedHipToKnee < bodyScale * 0.65;
+    }
+
+    function hasVisibleLowerBody(landmarks) {
+      return areVisible(
+        landmarks[LANDMARK.LEFT_HIP],
+        landmarks[LANDMARK.RIGHT_HIP],
+        landmarks[LANDMARK.LEFT_KNEE],
+        landmarks[LANDMARK.RIGHT_KNEE]
+      );
+    }
+
+    function getArmLandmarks(landmarks, side) {
+      const isLeft = side === "left";
+      return {
+        shoulder: landmarks[isLeft ? LANDMARK.LEFT_SHOULDER : LANDMARK.RIGHT_SHOULDER],
+        elbow: landmarks[isLeft ? LANDMARK.LEFT_ELBOW : LANDMARK.RIGHT_ELBOW],
+        wrist: landmarks[isLeft ? LANDMARK.LEFT_WRIST : LANDMARK.RIGHT_WRIST]
+      };
+    }
+
+    function isVisible(landmark) {
+      return Boolean(landmark)
+        && (landmark.visibility === undefined || landmark.visibility >= VISIBILITY_THRESHOLD);
+    }
+
+    function areVisible(...landmarks) {
+      return landmarks.every(isVisible);
+    }
+
+    function distance2D(pointA, pointB) {
+      return Math.hypot(pointA.x - pointB.x, pointA.y - pointB.y);
+    }
+
+    function calculateAngle(pointA, pointB, pointC) {
+      const first = Math.atan2(pointA.y - pointB.y, pointA.x - pointB.x);
+      const second = Math.atan2(pointC.y - pointB.y, pointC.x - pointB.x);
+      let angle = Math.abs((first - second) * 180 / Math.PI);
+      if (angle > 180) {
+        angle = 360 - angle;
+      }
+      return angle;
+    }
+
+    /** Use visible torso length when possible, with shoulder width as a fallback. */
+    function getBodyScale(landmarks) {
+      const leftShoulder = landmarks[LANDMARK.LEFT_SHOULDER];
+      const rightShoulder = landmarks[LANDMARK.RIGHT_SHOULDER];
+      const leftHip = landmarks[LANDMARK.LEFT_HIP];
+      const rightHip = landmarks[LANDMARK.RIGHT_HIP];
+      const shoulderWidth = areVisible(leftShoulder, rightShoulder)
+        ? distance2D(leftShoulder, rightShoulder)
+        : 0;
+
+      if (areVisible(leftShoulder, rightShoulder, leftHip, rightHip)) {
+        const shoulderMidpoint = midpoint(leftShoulder, rightShoulder);
+        const hipMidpoint = midpoint(leftHip, rightHip);
+        return Math.max(distance2D(shoulderMidpoint, hipMidpoint), shoulderWidth, 0.1);
+      }
+
+      return Math.max(shoulderWidth, 0.1);
+    }
+
+    function midpoint(pointA, pointB) {
+      return {
+        x: (pointA.x + pointB.x) / 2,
+        y: (pointA.y + pointB.y) / 2
+      };
+    }
+
+    /** Adapt the outward direction to source orientation instead of assuming mirrored coordinates. */
+    function isOutwardFromShoulder(wrist, shoulder, oppositeShoulder, minimumReach) {
+      const outwardDirection = Math.sign(shoulder.x - oppositeShoulder.x);
+      return outwardDirection !== 0
+        && (wrist.x - shoulder.x) * outwardDirection >= minimumReach;
+    }
+
+    function updatePoseStability(candidatePose, now) {
+      candidatePoseElement.textContent = candidatePose || "None";
+
+      if (candidatePose !== pendingPose) {
+        pendingPose = candidatePose;
+        pendingPoseSince = now;
+      }
+
+      if (candidatePose === confirmedPose && confirmedPose !== null) {
+        confirmedPoseLastSeen = now;
+      }
+
+      if (candidatePose && candidatePose !== confirmedPose
+          && now - pendingPoseSince >= POSE_HOLD_DURATION_MS) {
+        setConfirmedPose(candidatePose, now);
+        return;
+      }
+
+      if (confirmedPose && candidatePose !== confirmedPose
+          && now - confirmedPoseLastSeen >= POSE_RELEASE_GRACE_MS) {
+        setConfirmedPose(null, now);
+      }
+    }
+
+    function setConfirmedPose(poseName, now = performance.now()) {
+      confirmedPose = poseName;
+      confirmedPoseLastSeen = poseName ? now : 0;
+      updatePoseTargetUI();
+    }
+
+    function updatePoseTargetUI() {
+      const displayName = confirmedPose || "None";
+      currentPoseElement.textContent = confirmedPose
+        ? `Current Pose: ${displayName} ✓`
+        : "Current Pose: None";
+      currentPoseElement.dataset.recognised = String(Boolean(confirmedPose));
+      confirmedPoseElement.textContent = displayName;
+
+      for (const card of poseCards) {
+        const isActive = card.dataset.pose === confirmedPose;
+        card.classList.toggle("is-active", isActive);
+        card.setAttribute("aria-current", isActive ? "true" : "false");
+      }
+    }
+
+    function resetPoseRecognition() {
+      pendingPose = null;
+      pendingPoseSince = 0;
+      candidatePoseElement.textContent = "None";
+      poseAvailability.textContent = "Start the camera to test a pose.";
+      setConfirmedPose(null, 0);
+    }
+
+    function updateStatus(message, state = "neutral") {
+      statusText.textContent = message;
+      status.dataset.state = state;
+    }
+
+    function showCameraError(error) {
+      if (error?.name === "NotAllowedError" || error?.name === "SecurityError") {
+        updateStatus("Camera permission denied", "error");
+      } else if (error?.name === "NotFoundError" || error?.name === "DevicesNotFoundError") {
+        updateStatus("Camera unavailable", "error");
+      } else if (error?.name === "NotReadableError" || error?.name === "TrackStartError") {
+        updateStatus("Camera is unavailable or already in use", "error");
+      } else {
+        updateStatus("Video stream failed to start", "error");
+      }
+    }
+
+    /** Match the overlay backing buffer to its responsive displayed size. */
+    function resizeCanvas() {
+      const bounds = cameraStage.getBoundingClientRect();
+      const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+      const width = Math.max(1, Math.round(bounds.width * pixelRatio));
+      const height = Math.max(1, Math.round(bounds.height * pixelRatio));
+
+      if (canvas.width !== width || canvas.height !== height) {
+        canvas.width = width;
+        canvas.height = height;
+      }
+    }
+
+    function clearCanvas() {
+      canvasContext.clearRect(0, 0, canvas.width, canvas.height);
+    }
+
+    startButton.addEventListener("click", startCamera);
+    stopButton.addEventListener("click", stopCamera);
+
+    const resizeObserver = new ResizeObserver(() => {
+      resizeCanvas();
+    });
+    resizeObserver.observe(cameraStage);
+
+    window.addEventListener("pagehide", stopCamera);
+    updateDebugPanel(null);
+    initializePoseLandmarker();
+  </script>
+</body>
+</html>

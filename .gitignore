@@ -1,0 +1,18 @@
+# Historical source backups retained outside the tracked repository structure
+/Rauawaawa_game_v0.1.html
+/Rauawaawa_game_v0.2.html
+/maori background.png
+/maori background 2.png
+/camera_pose_demo_repo/
+
+# Operating-system and editor files
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.swp
+*.swo
+*~
+
+# Python cache files
+__pycache__/
+*.py[cod]
