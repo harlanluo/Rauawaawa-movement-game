@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -43,7 +43,12 @@
 
         body {
             font-family: 'Nunito', sans-serif;
-            background: linear-gradient(135deg, #181b22 0%, #252b36 100%);
+            background-color: #f4eddd;
+            background-image: url("assets/maori background 2.png");
+            background-size: 100% 100%;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: scroll;
             color: var(--text-main);
             min-height: 100vh;
             display: flex;
@@ -56,9 +61,8 @@
 
         /* Main Prototype Frame */
         #screen-container {
-            width: 1000px;
-            max-width: 95vw;
-            height: 640px;
+            width: min(1000px, 82vw);
+            height: min(640px, 78vh);
             background: var(--container-bg);
             border-radius: 24px;
             box-shadow: 0 25px 60px rgba(0, 0, 0, 0.55), 0 0 0 8px #485261;
@@ -267,6 +271,7 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
+            overflow-y: auto;
         }
 
         .playlist-grid {
@@ -760,6 +765,306 @@
         .pause-overlay.active {
             display: flex;
         }
+
+        /* ---------------------------------------------------- */
+        /* ROLE SELECTION & STAFF PROTOTYPE SCREENS              */
+        /* ---------------------------------------------------- */
+        #screen-start,
+        .staff-screen { background: #d8dcde; }
+
+        .role-content,
+        .staff-content {
+            flex: 1;
+            min-height: 0;
+            padding: 24px 40px 36px;
+            overflow-y: auto;
+        }
+
+        .role-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 30px;
+        }
+
+        .start-top {
+            position: absolute;
+            top: 24px;
+            left: 28px;
+            right: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            z-index: 10;
+        }
+
+        .start-voice-btn {
+            flex: 0 0 auto;
+            font-size: 15px;
+            padding: 9px 14px;
+        }
+
+        .role-heading {
+            font-family: 'Fredoka', sans-serif;
+            font-size: 42px;
+            text-align: center;
+            color: #1e293b;
+        }
+
+        .role-subheading {
+            margin-top: -20px;
+            font-size: 21px;
+            color: #52606d;
+            text-align: center;
+        }
+
+        .role-options,
+        .dashboard-options,
+        .add-game-options {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(230px, 300px));
+            gap: 28px;
+            justify-content: center;
+        }
+
+        .role-btn,
+        .staff-option-btn {
+            min-height: 145px;
+            border: 3px solid transparent;
+            border-radius: 22px;
+            padding: 22px;
+            font-family: 'Fredoka', sans-serif;
+            font-size: 30px;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 10px 22px rgba(0, 0, 0, 0.16);
+            transition: transform 0.2s, box-shadow 0.2s, background-color 0.2s;
+        }
+
+        .role-btn:hover,
+        .staff-option-btn:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 28px rgba(0, 0, 0, 0.22);
+        }
+
+        .role-btn small,
+        .staff-option-btn small {
+            display: block;
+            margin-top: 8px;
+            font-family: 'Nunito', sans-serif;
+            font-size: 17px;
+            font-weight: 800;
+        }
+
+        .role-staff { background: #435b74; color: #fff; }
+        .role-kaumatua { background: var(--color-seated); color: #fff; }
+
+        .staff-panel {
+            width: min(600px, 100%);
+            margin: 0 auto;
+            background: #f7f9fa;
+            border: 2px solid #bcc5cc;
+            border-radius: 18px;
+            padding: 24px 28px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+        }
+
+        .staff-form { display: grid; gap: 14px; }
+        .staff-form label { font-size: 17px; font-weight: 900; color: #263746; }
+
+        .staff-form input,
+        .staff-form select,
+        .staff-form textarea {
+            width: 100%;
+            margin-top: 5px;
+            padding: 11px 13px;
+            border: 2px solid #91a0ab;
+            border-radius: 10px;
+            background: #fff;
+            color: #1f2933;
+            font: 700 16px 'Nunito', sans-serif;
+            user-select: text;
+            -webkit-user-select: text;
+        }
+
+        .staff-form textarea { min-height: 74px; resize: vertical; }
+
+        .staff-form input:focus,
+        .staff-form select:focus,
+        .staff-form textarea:focus,
+        .staff-btn:focus-visible,
+        .role-btn:focus-visible,
+        .staff-option-btn:focus-visible {
+            outline: 4px solid var(--color-focus-yellow);
+            outline-offset: 2px;
+        }
+
+        .demo-credentials,
+        .prototype-note {
+            margin-bottom: 16px;
+            padding: 12px 16px;
+            border-radius: 10px;
+            background: #e7f4fb;
+            border-left: 6px solid #1976d2;
+            color: #183b56;
+            line-height: 1.45;
+        }
+
+        .form-message { min-height: 22px; font-weight: 900; color: #b42318; }
+
+        .staff-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 6px;
+        }
+
+        .staff-btn {
+            border: none;
+            border-radius: 11px;
+            padding: 11px 20px;
+            background: #1976d2;
+            color: #fff;
+            font: 900 16px 'Nunito', sans-serif;
+            cursor: pointer;
+            transition: transform 0.15s, background-color 0.2s;
+        }
+
+        .staff-btn:hover { background: #125ea9; transform: translateY(-2px); }
+        .staff-btn.secondary { background: #607d8b; }
+        .staff-btn.success { background: #16835b; }
+        .staff-btn.danger { background: #c62828; }
+        .staff-btn:disabled { background: #9aa5ad; cursor: not-allowed; transform: none; }
+
+        .dashboard-options {
+            grid-template-columns: repeat(2, minmax(230px, 280px));
+            margin: 35px auto 0;
+        }
+
+        .staff-option-btn { background: #fff; color: #29445a; border-color: #8ba5b8; }
+
+        .library-toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 14px;
+        }
+
+        .library-list { display: grid; gap: 10px; }
+
+        .library-item {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            gap: 18px;
+            align-items: center;
+            padding: 13px 16px;
+            background: #fff;
+            border: 2px solid #bdc8cf;
+            border-radius: 13px;
+        }
+
+        .library-item h3 { font-size: 19px; color: #203746; }
+        .library-item p { margin-top: 3px; color: #536471; font-size: 14px; }
+        .library-item .staff-actions { margin-top: 0; }
+        .library-item .staff-btn { padding: 8px 13px; font-size: 14px; }
+        .edit-panel { display: none; margin-bottom: 15px; }
+        .edit-panel.active { display: block; }
+
+        .file-drop-area,
+        .record-preview,
+        .processing-panel {
+            padding: 24px;
+            border: 3px dashed #78909c;
+            border-radius: 16px;
+            background: #eef2f4;
+            text-align: center;
+        }
+
+        .file-name { min-height: 26px; margin-top: 12px; font-weight: 900; color: #285943; }
+
+        .record-preview {
+            min-height: 205px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            background: linear-gradient(145deg, #253441, #111820);
+            border-style: solid;
+        }
+
+        .record-preview .camera-icon { font-size: 58px; }
+        .record-timer { font-size: 28px; font-weight: 900; margin-top: 10px; }
+        .recording-indicator { display: none; color: #ff6b6b; font-weight: 900; margin-top: 5px; }
+        .recording-indicator.active { display: block; }
+
+        .progress-track {
+            width: 100%;
+            height: 28px;
+            margin: 22px 0;
+            overflow: hidden;
+            border-radius: 20px;
+            background: #c3cbd1;
+        }
+
+        .progress-fill {
+            width: 0;
+            height: 100%;
+            background: linear-gradient(90deg, #00a98f, #00d3b3);
+            transition: width 0.35s ease;
+        }
+
+        .processing-steps {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 6px;
+            font-size: 13px;
+            font-weight: 800;
+            color: #66747e;
+        }
+
+        .processing-steps span.active { color: #08785f; }
+        .empty-library { padding: 30px; background: #f7f9fa; border-radius: 12px; text-align: center; color: #586875; font-weight: 800; }
+
+        @media (max-width: 760px), (max-height: 650px) {
+            #screen-container { height: min(640px, 94vh); }
+            .screen-top-bar { padding: 10px 16px; }
+            .screen-title { font-size: 26px; }
+            .role-options,
+            .dashboard-options,
+            .add-game-options { grid-template-columns: minmax(230px, 1fr); }
+            .role-content,
+            .staff-content { padding: 18px 22px 28px; }
+            .role-content { justify-content: flex-start; padding-top: 100px; }
+            .start-top { top: 16px; left: 18px; right: 18px; }
+            .start-top .home-brand { font-size: 22px; }
+            .start-voice-btn { font-size: 14px; }
+            .role-btn,
+            .staff-option-btn { min-height: 112px; }
+            .processing-steps { grid-template-columns: 1fr; text-align: left; }
+        }
+
+        /* Keep the default rules above as the normal desktop/laptop baseline. */
+        @media (min-width: 1500px) {
+            #screen-container {
+                width: min(1000px, 74vw);
+                height: min(640px, 72vh);
+            }
+        }
+
+        @media (min-width: 768px) and (max-width: 1400px) and (orientation: landscape) {
+            body {
+                padding: 28px 32px;
+            }
+
+            #screen-container {
+                width: 86vw;
+                height: min(640px, 80vh);
+            }
+        }
     </style>
 </head>
 <body>
@@ -768,17 +1073,50 @@
     <div id="screen-container">
 
         <!-- ======================================================== -->
+        <!-- START: ROLE SELECTION                                    -->
+        <!-- ======================================================== -->
+        <div id="screen-start" class="screen active">
+            <div class="start-top">
+                <div class="home-brand"><span>🌟</span> Kaumātua Wellness</div>
+                <button class="voice-icon-btn start-voice-btn accessible-target"
+                        data-speech="Toggle Voice Guidance Mode"
+                        aria-pressed="false"
+                        onclick="handleAccessibleClick(this, toggleVoiceMode)">
+                    🔊 Voice Guidance: <span class="voice-state">OFF</span>
+                </button>
+            </div>
+            <div class="role-content">
+                <h1 class="role-heading">How would you like to continue?</h1>
+                <p class="role-subheading">Choose the area that is right for you.</p>
+                <div class="role-options">
+                    <button class="role-btn role-staff accessible-target"
+                            data-speech="Staff login. Login required"
+                            onclick="handleAccessibleClick(this, openStaffLogin)">
+                        👥 Staff
+                        <small>Login required</small>
+                    </button>
+                    <button class="role-btn role-kaumatua accessible-target"
+                            data-speech="Kaumātua exercise. No login required"
+                            onclick="handleAccessibleClick(this, () => goToScreen('screen-home'))">
+                        🧓 Kaumātua
+                        <small>Start Exercise · No login required</small>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ======================================================== -->
         <!-- SCREEN 1: HOMEPAGE                                       -->
         <!-- ======================================================== -->
-        <div id="screen-home" class="screen active">
+        <div id="screen-home" class="screen">
             <div class="home-top">
                 <div class="home-brand">
                     <span>🌟</span> Kaumātua Wellness
                 </div>
-                <button class="voice-icon-btn accessible-target" 
-                        data-speech="Toggle Voice Guidance Mode" 
-                        onclick="handleAccessibleClick(this, toggleVoiceMode)">
-                    🔊 Voice Guidance: <span id="homeVoiceStatus">OFF</span>
+                <button class="home-icon-btn accessible-target"
+                        data-speech="Back to role selection"
+                        onclick="handleAccessibleClick(this, () => goToScreen('screen-start'))">
+                    ← Start
                 </button>
             </div>
 
@@ -810,6 +1148,7 @@
             <div class="screen-top-bar">
                 <button class="voice-icon-btn accessible-target" 
                         data-speech="Voice Guidance switch" 
+                        aria-pressed="false"
                         onclick="handleAccessibleClick(this, toggleVoiceMode)">
                     🔊 <span class="voice-text-badge">Voice: OFF</span>
                 </button>
@@ -824,14 +1163,7 @@
             </div>
 
             <div class="playlist-wrap">
-                <div class="playlist-grid">
-                    <button class="game-grid-btn accessible-target" data-speech="Game 1, Gentle Upper Body" onclick="handleAccessibleClick(this, () => startGame(1))">Game 1</button>
-                    <button class="game-grid-btn accessible-target" data-speech="Game 2, Arm Reach and Stretch" onclick="handleAccessibleClick(this, () => startGame(2))">Game 2</button>
-                    <button class="game-grid-btn accessible-target" data-speech="Game 3, Shoulder Twist and Wave" onclick="handleAccessibleClick(this, () => startGame(3))">Game 3</button>
-                    <button class="game-grid-btn accessible-target" data-speech="Game 4, Core Stability" onclick="handleAccessibleClick(this, () => startGame(4))">Game 4</button>
-                    <button class="game-grid-btn accessible-target" data-speech="Game 5, Side Tap Rhythm" onclick="handleAccessibleClick(this, () => startGame(5))">Game 5</button>
-                    <button class="game-grid-btn accessible-target" data-speech="Game 6, Gentle Cool Down" onclick="handleAccessibleClick(this, () => startGame(6))">Game 6</button>
-                </div>
+                <div id="kaumatuaGameGrid" class="playlist-grid"></div>
             </div>
         </div>
 
@@ -843,6 +1175,7 @@
             <div class="game-header-bar">
                 <button class="voice-icon-btn accessible-target" 
                         data-speech="Voice Guidance switch" 
+                        aria-pressed="false"
                         onclick="handleAccessibleClick(this, toggleVoiceMode)">
                     🔊 <span class="voice-text-badge">Voice: OFF</span>
                 </button>
@@ -987,6 +1320,219 @@
             </div>
         </div>
 
+        <!-- ======================================================== -->
+        <!-- STAFF LOGIN                                              -->
+        <!-- ======================================================== -->
+        <div id="screen-staff-login" class="screen staff-screen">
+            <div class="screen-top-bar">
+                <button class="home-icon-btn accessible-target"
+                        data-speech="Back to start page"
+                        onclick="handleAccessibleClick(this, () => goToScreen('screen-start'))">← Back</button>
+                <div class="screen-title">Staff Login</div>
+                <div style="width: 84px;"></div>
+            </div>
+            <div class="staff-content">
+                <div class="staff-panel">
+                    <div class="demo-credentials">
+                        <strong>Demo Staff Account</strong><br>
+                        Username: <strong>staff</strong><br>
+                        Password: <strong>demo123</strong>
+                    </div>
+                    <form id="staffLoginForm" class="staff-form" onsubmit="handleStaffLogin(event)">
+                        <label>Username
+                            <input id="staffUsername" type="text" autocomplete="username" aria-describedby="staffLoginMessage">
+                        </label>
+                        <label>Password
+                            <input id="staffPassword" type="password" autocomplete="current-password" aria-describedby="staffLoginMessage">
+                        </label>
+                        <div id="staffLoginMessage" class="form-message" role="alert" aria-live="polite"></div>
+                        <button class="staff-btn" type="submit">Login</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- ======================================================== -->
+        <!-- STAFF DASHBOARD                                          -->
+        <!-- ======================================================== -->
+        <div id="screen-staff-dashboard" class="screen staff-screen">
+            <div class="screen-top-bar">
+                <div class="home-brand"><span>👥</span> Staff Area</div>
+                <div class="screen-title">Dashboard</div>
+                <button class="home-icon-btn" onclick="logoutStaff()">Logout</button>
+            </div>
+            <div class="staff-content">
+                <p class="prototype-note"><strong>Prototype mode:</strong> Game changes last only until this page is refreshed.</p>
+                <div class="dashboard-options">
+                    <button class="staff-option-btn" onclick="openStaffLibrary()">📚 Game Library<small>View and modify games</small></button>
+                    <button class="staff-option-btn" onclick="openAddGame()">➕ Add New Game<small>Upload or record a video</small></button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ======================================================== -->
+        <!-- STAFF GAME LIBRARY MANAGEMENT                            -->
+        <!-- ======================================================== -->
+        <div id="screen-staff-library" class="screen staff-screen">
+            <div class="screen-top-bar">
+                <button class="home-icon-btn" onclick="goToScreen('screen-staff-dashboard')">← Dashboard</button>
+                <div class="screen-title">Game Library</div>
+                <button class="home-icon-btn" onclick="logoutStaff()">Logout</button>
+            </div>
+            <div class="staff-content">
+                <div class="library-toolbar">
+                    <p><strong>Manage the current prototype games.</strong></p>
+                    <button class="staff-btn success" onclick="openAddGame()">+ Add New Game</button>
+                </div>
+                <div id="editGamePanel" class="staff-panel edit-panel">
+                    <form class="staff-form" onsubmit="saveGameEdit(event)">
+                        <input id="editGameId" type="hidden">
+                        <label>Game name<input id="editGameName" type="text" required></label>
+                        <label>Exercise mode
+                            <select id="editGameMode" required>
+                                <option value="Seated">Seated</option>
+                                <option value="Standing">Standing</option>
+                                <option value="Both">Seated and Standing</option>
+                            </select>
+                        </label>
+                        <label>Description<textarea id="editGameDescription"></textarea></label>
+                        <div class="staff-actions">
+                            <button class="staff-btn success" type="submit">Save Changes</button>
+                            <button class="staff-btn secondary" type="button" onclick="cancelGameEdit()">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+                <div id="libraryStatusMessage" class="form-message" role="status" aria-live="polite"></div>
+                <div id="staffGameList" class="library-list"></div>
+            </div>
+        </div>
+
+        <!-- ======================================================== -->
+        <!-- ADD NEW GAME                                             -->
+        <!-- ======================================================== -->
+        <div id="screen-add-game" class="screen staff-screen">
+            <div class="screen-top-bar">
+                <button class="home-icon-btn" onclick="goToScreen('screen-staff-dashboard')">← Dashboard</button>
+                <div class="screen-title">Add New Game</div>
+                <button class="home-icon-btn" onclick="logoutStaff()">Logout</button>
+            </div>
+            <div class="staff-content">
+                <p class="prototype-note">Choose how to provide the movement video for this prototype game.</p>
+                <div class="add-game-options">
+                    <button class="staff-option-btn" onclick="openUploadVideo()">📁 Upload Video<small>Select a video from this device</small></button>
+                    <button class="staff-option-btn" onclick="openRecordVideo()">🎥 Record a Video<small>Use the simulated recorder</small></button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ======================================================== -->
+        <!-- UPLOAD VIDEO                                             -->
+        <!-- ======================================================== -->
+        <div id="screen-upload-video" class="screen staff-screen">
+            <div class="screen-top-bar">
+                <button class="home-icon-btn" onclick="goToScreen('screen-add-game')">← Back</button>
+                <div class="screen-title">Upload Video</div>
+                <button class="home-icon-btn" onclick="logoutStaff()">Logout</button>
+            </div>
+            <div class="staff-content">
+                <div class="staff-panel">
+                    <div class="file-drop-area">
+                        <p style="font-size: 42px;">📹</p>
+                        <p><strong>Select a local video file</strong></p>
+                        <input id="videoFileInput" type="file" accept="video/*" onchange="handleVideoFileSelected(event)" style="margin-top: 15px; user-select: text;">
+                        <p id="selectedVideoName" class="file-name" aria-live="polite">No file selected</p>
+                    </div>
+                    <p class="prototype-note" style="margin-top: 16px;">The file stays on this device. No server upload occurs.</p>
+                    <div class="staff-actions">
+                        <button id="uploadContinueBtn" class="staff-btn success" disabled onclick="beginProcessing('Uploaded video')">Continue to Processing</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ======================================================== -->
+        <!-- SIMULATED RECORD VIDEO                                   -->
+        <!-- ======================================================== -->
+        <div id="screen-record-video" class="screen staff-screen">
+            <div class="screen-top-bar">
+                <button class="home-icon-btn" onclick="leaveRecordScreen()">← Back</button>
+                <div class="screen-title">Record a Video</div>
+                <button class="home-icon-btn" onclick="logoutStaff()">Logout</button>
+            </div>
+            <div class="staff-content">
+                <p class="prototype-note"><strong>Simulated recorder:</strong> This demonstrates the recording workflow without camera access or saved media.</p>
+                <div class="staff-panel">
+                    <div class="record-preview">
+                        <div class="camera-icon">🎥</div>
+                        <div id="recordTimer" class="record-timer">00:00</div>
+                        <div id="recordingIndicator" class="recording-indicator">● RECORDING</div>
+                        <div id="recordStatus">Ready to record</div>
+                    </div>
+                    <div class="staff-actions">
+                        <button id="startRecordBtn" class="staff-btn danger" onclick="startSimulatedRecording()">Start Recording</button>
+                        <button id="stopRecordBtn" class="staff-btn secondary" disabled onclick="stopSimulatedRecording()">Stop Recording</button>
+                        <button id="retakeRecordBtn" class="staff-btn secondary" disabled onclick="resetSimulatedRecording()">Retake</button>
+                        <button id="recordContinueBtn" class="staff-btn success" disabled onclick="beginProcessing('Recorded video')">Continue</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ======================================================== -->
+        <!-- SIMULATED VIDEO-TO-GAME PROCESSING                       -->
+        <!-- ======================================================== -->
+        <div id="screen-processing" class="screen staff-screen">
+            <div class="screen-top-bar">
+                <button class="home-icon-btn" onclick="cancelProcessing()">Cancel</button>
+                <div class="screen-title">Video to Game</div>
+                <button class="home-icon-btn" onclick="logoutStaff()">Logout</button>
+            </div>
+            <div class="staff-content">
+                <div class="staff-panel processing-panel">
+                    <h2 id="processingTitle">Preparing your video…</h2>
+                    <p>This is a visual prototype simulation. No AI or video conversion is performed.</p>
+                    <div class="progress-track" role="progressbar" aria-label="Simulated video processing" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                        <div id="processingProgress" class="progress-fill"></div>
+                    </div>
+                    <div class="processing-steps">
+                        <span>1. Uploading video</span>
+                        <span>2. Extracting movement</span>
+                        <span>3. Creating avatar</span>
+                        <span>4. Preparing game</span>
+                        <span>5. Complete</span>
+                    </div>
+                    <button id="processingContinueBtn" class="staff-btn success" style="margin-top: 24px;" disabled onclick="openPublishScreen()">Continue to Publish</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ======================================================== -->
+        <!-- PUBLISH GAME                                             -->
+        <!-- ======================================================== -->
+        <div id="screen-publish-game" class="screen staff-screen">
+            <div class="screen-top-bar">
+                <button class="home-icon-btn" onclick="goToScreen('screen-add-game')">← Add Game</button>
+                <div class="screen-title">Publish Game</div>
+                <button class="home-icon-btn" onclick="logoutStaff()">Logout</button>
+            </div>
+            <div class="staff-content">
+                <div class="staff-panel">
+                    <form id="publishGameForm" class="staff-form" onsubmit="publishGame(event)">
+                        <label>Game name<input id="publishGameName" type="text" required maxlength="60"></label>
+                        <label>Exercise mode
+                            <select id="publishGameMode" required>
+                                <option value="Seated">Seated</option>
+                                <option value="Standing">Standing</option>
+                            </select>
+                        </label>
+                        <label>Short description (optional)<textarea id="publishGameDescription" maxlength="160"></textarea></label>
+                        <div id="publishMessage" class="form-message" role="status" aria-live="polite"></div>
+                        <button class="staff-btn success" type="submit">Publish to Game Library</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
         <!-- Voice Guidance Subtitle Bar -->
         <div id="voice-subtitle"></div>
 
@@ -1006,6 +1552,21 @@
         let timerInterval = null;
         let timeRemainingSec = 150; // 02:30
         let currentScore = 180;
+        let nextGameId = 7;
+        let selectedVideoFileName = '';
+        let recordingInterval = null;
+        let recordingSeconds = 0;
+        let processingInterval = null;
+
+        // In-memory prototype library. Changes intentionally disappear on refresh.
+        const gameLibrary = [
+            { id: 1, name: 'Game 1', mode: 'Both', description: 'Gentle Upper Body' },
+            { id: 2, name: 'Game 2', mode: 'Both', description: 'Arm Reach and Stretch' },
+            { id: 3, name: 'Game 3', mode: 'Both', description: 'Shoulder Twist and Wave' },
+            { id: 4, name: 'Game 4', mode: 'Both', description: 'Core Stability' },
+            { id: 5, name: 'Game 5', mode: 'Both', description: 'Side Tap Rhythm' },
+            { id: 6, name: 'Game 6', mode: 'Both', description: 'Gentle Cool Down' }
+        ];
 
         const videoEl = document.getElementById('gameVideo');
         const videoSourceEl = document.getElementById('videoSourceEl');
@@ -1040,7 +1601,35 @@
         function openPlaylist(mode) {
             currentMode = mode;
             document.getElementById('playlistHeaderTitle').innerText = `${mode} Playlist`;
+            renderKaumatuaGameLibrary();
             goToScreen('screen-playlist');
+        }
+
+        function getGamesForCurrentMode() {
+            return gameLibrary.filter(game => game.mode === currentMode || game.mode === 'Both');
+        }
+
+        function renderKaumatuaGameLibrary() {
+            const grid = document.getElementById('kaumatuaGameGrid');
+            grid.innerHTML = '';
+            const availableGames = getGamesForCurrentMode();
+
+            if (availableGames.length === 0) {
+                const emptyMessage = document.createElement('p');
+                emptyMessage.className = 'empty-library';
+                emptyMessage.textContent = `No ${currentMode.toLowerCase()} games are currently available.`;
+                grid.appendChild(emptyMessage);
+                return;
+            }
+
+            availableGames.forEach(game => {
+                const button = document.createElement('button');
+                button.className = 'game-grid-btn accessible-target';
+                button.textContent = game.name;
+                button.setAttribute('data-speech', `${game.name}. ${game.description || currentMode + ' exercise'}`);
+                button.addEventListener('click', () => handleAccessibleClick(button, () => startGame(game.id)));
+                grid.appendChild(button);
+            });
         }
 
         // Start Game
@@ -1069,7 +1658,10 @@
             startTimer();
 
             if (isVoiceMode) {
-                speak(`Starting ${currentMode} Game ${gameNumber}. Let's move!`);
+                const numberWords = { 1: 'One', 2: 'Two', 3: 'Three', 4: 'Four', 5: 'Five', 6: 'Six' };
+                const selectedGame = gameLibrary.find(game => game.id === gameNumber);
+                const spokenGameName = selectedGame ? selectedGame.name : `Game ${numberWords[gameNumber] || gameNumber}`;
+                speak(`Starting ${currentMode} ${spokenGameName}. Let's move!`);
             }
         }
 
@@ -1156,8 +1748,14 @@
 
         // Continue to Next Game
         function continueNextGame() {
-            let nextGame = (currentGameNumber % 6) + 1;
-            startGame(nextGame);
+            const availableGames = getGamesForCurrentMode();
+            if (availableGames.length === 0) {
+                goToScreen('screen-playlist');
+                return;
+            }
+            const currentIndex = availableGames.findIndex(game => game.id === currentGameNumber);
+            const nextIndex = currentIndex < 0 ? 0 : (currentIndex + 1) % availableGames.length;
+            startGame(availableGames[nextIndex].id);
         }
 
         // Stop session cleanly
@@ -1176,31 +1774,307 @@
         });
 
         /* ---------------------------------------------------- */
+        /* STAFF PROTOTYPE WORKFLOW                              */
+        /* ---------------------------------------------------- */
+        function openStaffLogin() {
+            document.getElementById('staffLoginForm').reset();
+            document.getElementById('staffLoginMessage').textContent = '';
+            goToScreen('screen-staff-login');
+        }
+
+        /*
+         * Prototype-only authentication.
+         * This is not secure and would be replaced with server-side
+         * authentication in a production system.
+         */
+        function handleStaffLogin(event) {
+            event.preventDefault();
+            const username = document.getElementById('staffUsername').value.trim();
+            const password = document.getElementById('staffPassword').value;
+            const message = document.getElementById('staffLoginMessage');
+
+            if (!username || !password) {
+                message.textContent = 'Please enter both the username and password.';
+                return;
+            }
+
+            if (username !== 'staff' || password !== 'demo123') {
+                message.textContent = 'Incorrect username or password. Please use the demo account shown above.';
+                return;
+            }
+
+            message.textContent = '';
+            document.getElementById('staffLoginForm').reset();
+            goToScreen('screen-staff-dashboard');
+        }
+
+        function logoutStaff() {
+            clearInterval(processingInterval);
+            resetSimulatedRecording();
+            selectedVideoFileName = '';
+            document.getElementById('staffLoginForm').reset();
+            document.getElementById('staffLoginMessage').textContent = '';
+            goToScreen('screen-start');
+        }
+
+        function openStaffLibrary() {
+            cancelGameEdit();
+            document.getElementById('libraryStatusMessage').textContent = '';
+            renderStaffGameLibrary();
+            goToScreen('screen-staff-library');
+        }
+
+        function renderStaffGameLibrary() {
+            const list = document.getElementById('staffGameList');
+            list.innerHTML = '';
+
+            if (gameLibrary.length === 0) {
+                const emptyMessage = document.createElement('div');
+                emptyMessage.className = 'empty-library';
+                emptyMessage.textContent = 'The prototype game library is empty.';
+                list.appendChild(emptyMessage);
+                return;
+            }
+
+            gameLibrary.forEach(game => {
+                const item = document.createElement('article');
+                item.className = 'library-item';
+
+                const details = document.createElement('div');
+                const heading = document.createElement('h3');
+                const metadata = document.createElement('p');
+                heading.textContent = game.name;
+                metadata.textContent = `${game.mode} · ${game.description || 'No description'}`;
+                details.append(heading, metadata);
+
+                const actions = document.createElement('div');
+                actions.className = 'staff-actions';
+                const editButton = document.createElement('button');
+                editButton.className = 'staff-btn';
+                editButton.type = 'button';
+                editButton.textContent = 'Edit';
+                editButton.addEventListener('click', () => beginGameEdit(game.id));
+
+                const deleteButton = document.createElement('button');
+                deleteButton.className = 'staff-btn danger';
+                deleteButton.type = 'button';
+                deleteButton.textContent = 'Delete';
+                deleteButton.addEventListener('click', () => deleteGame(game.id));
+                actions.append(editButton, deleteButton);
+
+                item.append(details, actions);
+                list.appendChild(item);
+            });
+        }
+
+        function beginGameEdit(gameId) {
+            const game = gameLibrary.find(item => item.id === gameId);
+            if (!game) return;
+
+            document.getElementById('editGameId').value = game.id;
+            document.getElementById('editGameName').value = game.name;
+            document.getElementById('editGameMode').value = game.mode;
+            document.getElementById('editGameDescription').value = game.description;
+            document.getElementById('editGamePanel').classList.add('active');
+            document.getElementById('editGameName').focus();
+        }
+
+        function saveGameEdit(event) {
+            event.preventDefault();
+            const gameId = Number(document.getElementById('editGameId').value);
+            const game = gameLibrary.find(item => item.id === gameId);
+            if (!game) return;
+
+            game.name = document.getElementById('editGameName').value.trim();
+            game.mode = document.getElementById('editGameMode').value;
+            game.description = document.getElementById('editGameDescription').value.trim();
+            cancelGameEdit();
+            renderStaffGameLibrary();
+            document.getElementById('libraryStatusMessage').textContent = 'Game details updated.';
+        }
+
+        function cancelGameEdit() {
+            document.getElementById('editGamePanel').classList.remove('active');
+        }
+
+        function deleteGame(gameId) {
+            const gameIndex = gameLibrary.findIndex(item => item.id === gameId);
+            if (gameIndex < 0) return;
+            const gameName = gameLibrary[gameIndex].name;
+            if (!window.confirm(`Delete “${gameName}” from this prototype session?`)) return;
+
+            gameLibrary.splice(gameIndex, 1);
+            cancelGameEdit();
+            renderStaffGameLibrary();
+            document.getElementById('libraryStatusMessage').textContent = `${gameName} deleted.`;
+        }
+
+        function openAddGame() {
+            clearInterval(processingInterval);
+            resetSimulatedRecording();
+            goToScreen('screen-add-game');
+        }
+
+        function openUploadVideo() {
+            selectedVideoFileName = '';
+            document.getElementById('videoFileInput').value = '';
+            document.getElementById('selectedVideoName').textContent = 'No file selected';
+            document.getElementById('uploadContinueBtn').disabled = true;
+            goToScreen('screen-upload-video');
+        }
+
+        function handleVideoFileSelected(event) {
+            const file = event.target.files[0];
+            selectedVideoFileName = file ? file.name : '';
+            document.getElementById('selectedVideoName').textContent = file
+                ? `Selected: ${file.name}`
+                : 'No file selected';
+            document.getElementById('uploadContinueBtn').disabled = !file;
+        }
+
+        function openRecordVideo() {
+            selectedVideoFileName = '';
+            resetSimulatedRecording();
+            goToScreen('screen-record-video');
+        }
+
+        function formatRecordingTime(totalSeconds) {
+            const mins = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
+            const secs = (totalSeconds % 60).toString().padStart(2, '0');
+            return `${mins}:${secs}`;
+        }
+
+        function startSimulatedRecording() {
+            clearInterval(recordingInterval);
+            recordingSeconds = 0;
+            document.getElementById('recordTimer').textContent = '00:00';
+            document.getElementById('recordStatus').textContent = 'Simulated capture in progress';
+            document.getElementById('recordingIndicator').classList.add('active');
+            document.getElementById('startRecordBtn').disabled = true;
+            document.getElementById('stopRecordBtn').disabled = false;
+            document.getElementById('retakeRecordBtn').disabled = true;
+            document.getElementById('recordContinueBtn').disabled = true;
+
+            recordingInterval = setInterval(() => {
+                recordingSeconds++;
+                document.getElementById('recordTimer').textContent = formatRecordingTime(recordingSeconds);
+            }, 1000);
+        }
+
+        function stopSimulatedRecording() {
+            if (recordingSeconds === 0) recordingSeconds = 1;
+            clearInterval(recordingInterval);
+            document.getElementById('recordTimer').textContent = formatRecordingTime(recordingSeconds);
+            document.getElementById('recordStatus').textContent = 'Simulated recording ready';
+            document.getElementById('recordingIndicator').classList.remove('active');
+            document.getElementById('stopRecordBtn').disabled = true;
+            document.getElementById('retakeRecordBtn').disabled = false;
+            document.getElementById('recordContinueBtn').disabled = false;
+        }
+
+        function resetSimulatedRecording() {
+            clearInterval(recordingInterval);
+            recordingSeconds = 0;
+            document.getElementById('recordTimer').textContent = '00:00';
+            document.getElementById('recordStatus').textContent = 'Ready to record';
+            document.getElementById('recordingIndicator').classList.remove('active');
+            document.getElementById('startRecordBtn').disabled = false;
+            document.getElementById('stopRecordBtn').disabled = true;
+            document.getElementById('retakeRecordBtn').disabled = true;
+            document.getElementById('recordContinueBtn').disabled = true;
+        }
+
+        function leaveRecordScreen() {
+            resetSimulatedRecording();
+            goToScreen('screen-add-game');
+        }
+
+        function beginProcessing(sourceLabel) {
+            clearInterval(processingInterval);
+            let progress = 0;
+            const progressBar = document.getElementById('processingProgress');
+            const progressTrack = progressBar.parentElement;
+            const stepLabels = document.querySelectorAll('.processing-steps span');
+            const continueButton = document.getElementById('processingContinueBtn');
+            document.getElementById('processingTitle').textContent = `Processing ${sourceLabel.toLowerCase()}…`;
+            progressBar.style.width = '0%';
+            progressTrack.setAttribute('aria-valuenow', '0');
+            stepLabels.forEach(step => step.classList.remove('active'));
+            continueButton.disabled = true;
+            goToScreen('screen-processing');
+
+            processingInterval = setInterval(() => {
+                progress = Math.min(progress + 5, 100);
+                progressBar.style.width = `${progress}%`;
+                progressTrack.setAttribute('aria-valuenow', progress);
+                const activeStep = Math.min(Math.floor(progress / 25), stepLabels.length - 1);
+                stepLabels.forEach((step, index) => step.classList.toggle('active', index <= activeStep));
+
+                if (progress === 100) {
+                    clearInterval(processingInterval);
+                    document.getElementById('processingTitle').textContent = 'Game preparation complete';
+                    continueButton.disabled = false;
+                }
+            }, 180);
+        }
+
+        function cancelProcessing() {
+            clearInterval(processingInterval);
+            goToScreen('screen-add-game');
+        }
+
+        function openPublishScreen() {
+            const defaultName = selectedVideoFileName
+                ? selectedVideoFileName.replace(/\.[^.]+$/, '')
+                : 'New Recorded Game';
+            document.getElementById('publishGameForm').reset();
+            document.getElementById('publishGameName').value = defaultName;
+            document.getElementById('publishMessage').textContent = '';
+            goToScreen('screen-publish-game');
+        }
+
+        function publishGame(event) {
+            event.preventDefault();
+            const name = document.getElementById('publishGameName').value.trim();
+            if (!name) {
+                document.getElementById('publishMessage').textContent = 'Please enter a game name.';
+                return;
+            }
+
+            gameLibrary.push({
+                id: nextGameId++,
+                name,
+                mode: document.getElementById('publishGameMode').value,
+                description: document.getElementById('publishGameDescription').value.trim()
+            });
+            selectedVideoFileName = '';
+            openStaffLibrary();
+            document.getElementById('libraryStatusMessage').textContent = `${name} published to the prototype library.`;
+        }
+
+        /* ---------------------------------------------------- */
         /* ACCESSIBILITY & DUAL-ACTION VOICE GUIDANCE ENGINE    */
         /* ---------------------------------------------------- */
         let subtitleTimer = null;
 
         function toggleVoiceMode() {
             isVoiceMode = !isVoiceMode;
-            
-            const homeVoiceStatus = document.getElementById('homeVoiceStatus');
+
             const voiceButtons = document.querySelectorAll('.voice-icon-btn');
+            const voiceStates = document.querySelectorAll('.voice-state');
             const voiceBadges = document.querySelectorAll('.voice-text-badge');
 
+            voiceButtons.forEach(btn => {
+                btn.classList.toggle('active', isVoiceMode);
+                btn.setAttribute('aria-pressed', String(isVoiceMode));
+            });
+            voiceStates.forEach(state => state.innerText = isVoiceMode ? "ON" : "OFF");
+            voiceBadges.forEach(badge => badge.innerText = isVoiceMode ? "Voice: ON" : "Voice: OFF");
+
             if (isVoiceMode) {
-                if (homeVoiceStatus) homeVoiceStatus.innerText = "ON";
-
-                voiceButtons.forEach(btn => btn.classList.add('active'));
-                voiceBadges.forEach(badge => badge.innerText = "Voice: ON");
-
                 const msg = "Voice Guidance Mode Enabled. Tap any button once to hear its name, tap again to activate.";
                 speak(msg);
             } else {
-                if (homeVoiceStatus) homeVoiceStatus.innerText = "OFF";
-
-                voiceButtons.forEach(btn => btn.classList.remove('active'));
-                voiceBadges.forEach(badge => badge.innerText = "Voice: OFF");
-
                 clearVoiceFocus();
                 const msg = "Voice Guidance Mode Disabled.";
                 speak(msg);
@@ -1258,6 +2132,38 @@
             }
         }
 
+        // English Voice selector for robust cross-device compatibility (iPad, Android, Windows, Mac)
+        let preferredEnglishVoice = null;
+
+        function initEnglishVoice() {
+            if ('speechSynthesis' in window) {
+                const voices = window.speechSynthesis.getVoices();
+                if (voices && voices.length > 0) {
+                    // Priority: en-NZ > en-AU > en-GB > en-US > any English voice
+                    preferredEnglishVoice = voices.find(v => v.lang === 'en-NZ') ||
+                                           voices.find(v => v.lang === 'en-AU') ||
+                                           voices.find(v => v.lang === 'en-GB') ||
+                                           voices.find(v => v.lang === 'en-US') ||
+                                           voices.find(v => v.lang && v.lang.toLowerCase().startsWith('en'));
+                }
+            }
+        }
+
+        if ('speechSynthesis' in window) {
+            initEnglishVoice();
+            window.speechSynthesis.onvoiceschanged = initEnglishVoice;
+        }
+
+        // Convert any numbers to English words so multilingual voices will NEVER read digits in Chinese
+        function formatTextForEnglishSpeech(text) {
+            const digitMap = {
+                '1': 'One', '2': 'Two', '3': 'Three', '4': 'Four', '5': 'Five',
+                '6': 'Six', '7': 'Seven', '8': 'Eight', '9': 'Nine', '0': 'Zero',
+                '180': 'one hundred and eighty'
+            };
+            return text.replace(/\b(180|[0-9])\b/g, (match) => digitMap[match] || match);
+        }
+
         // Text-to-Speech Engine with 100% synchronized subtitle
         function speak(text, showSub = true) {
             if (showSub) {
@@ -1265,10 +2171,23 @@
             }
             if ('speechSynthesis' in window) {
                 window.speechSynthesis.cancel(); // Cancel any ongoing speech
-                const utterance = new SpeechSynthesisUtterance(text);
+                
+                // Ensure English words for all digits
+                const spokenText = formatTextForEnglishSpeech(text);
+                const utterance = new SpeechSynthesisUtterance(spokenText);
                 utterance.rate = 0.92; // Clear and accessible pace
                 utterance.pitch = 1.0;
-                utterance.lang = 'en-NZ'; // New Zealand / Standard English
+                
+                // If a native English voice is available, assign it explicitly
+                if (!preferredEnglishVoice) {
+                    initEnglishVoice();
+                }
+                if (preferredEnglishVoice) {
+                    utterance.voice = preferredEnglishVoice;
+                    utterance.lang = preferredEnglishVoice.lang;
+                } else {
+                    utterance.lang = 'en-US'; // Universal fallback
+                }
                 
                 utterance.onend = function() {
                     if (!currentFocusedButton) {
