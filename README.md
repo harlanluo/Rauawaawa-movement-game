@@ -1,12 +1,28 @@
 # Rauawaawa Kaumātua Movement Game Prototype
 
+## Live Demos
+
+### 🎮 Movement Game Prototype
+
+[Open Movement Game Prototype](https://harlanluo.github.io/Rauawaawa-demo/Rauawaawa_game_demo.html)
+
+Interactive HTML prototype containing the Kaumātua exercise flow, Voice Guidance, and Staff prototype workflow.
+
+### 📷 Camera Pose Tracking Demo
+
+[Open Camera Pose Tracking Demo](https://harlanluo.github.io/Rauawaawa-demo/camera_pose_demo/camera_pose_test.html)
+
+Standalone MediaPipe webcam pose tracking prototype.
+
+The camera prototype is not yet integrated into the main game.
+
 ## Overview
 
 This University of Waikato student project is an evolving prototype for a camera-based movement and exercise game intended for kaumātua. It explores simple movement and exercise interaction, an accessible user interface, a kaumātua exercise flow, a Staff content-management workflow, and camera-based movement tracking.
 
-## Prototype Demos
+## Local Development and Testing
 
-This repository is private and does not use GitHub Pages. Teammates with repository access can clone or download it, then run both prototypes locally from the repository root:
+The live demo links above are the primary testing method. For local development, teammates with repository access can clone or download this repository, then run both prototypes from the repository root:
 
 ```bash
 python -m http.server 8000

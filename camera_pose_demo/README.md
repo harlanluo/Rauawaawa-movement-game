@@ -4,9 +4,15 @@ A standalone technical prototype for the Rauawaawa movement game. It tests brows
 
 This demo is currently separate from the main game prototype and is not yet integrated into the Kaumātua exercise flow.
 
+## Live Demo
+
+[Open the camera pose test](https://harlanluo.github.io/Rauawaawa-demo/camera_pose_demo/camera_pose_test.html)
+
+Allow camera access when prompted. The page requests video only and does not request microphone access.
+
 ## Run the Demo Locally
 
-GitHub Pages is not available for this private repository on the current plan. Clone or download the main repository, then run this command from its root:
+For local development and testing, clone or download the main repository, then run this command from its root:
 
 ```bash
 python -m http.server 8000
