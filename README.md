@@ -4,6 +4,30 @@
 
 This University of Waikato student project is an evolving prototype for a camera-based movement and exercise game intended for kaumātua. It explores simple movement and exercise interaction, an accessible user interface, a kaumātua exercise flow, a Staff content-management workflow, and camera-based movement tracking.
 
+## Prototype Demos
+
+This repository is private and does not use GitHub Pages. Teammates with repository access can clone or download it, then run both prototypes locally from the repository root:
+
+```bash
+python -m http.server 8000
+```
+
+### Main Game Prototype
+
+File: `Rauawaawa_game_demo.html`
+
+Open `http://localhost:8000/Rauawaawa_game_demo.html` after starting the local server.
+
+This is the main interactive prototype. It includes the Kaumātua exercise flow, Voice Guidance, a Staff login and management prototype, the exercise and game library, and the upload, record, simulated processing, and publishing flow. The Staff login and processing workflow are prototype-only and do not use a production backend.
+
+### Camera Pose Tracking Demo
+
+File: `camera_pose_demo/camera_pose_test.html`
+
+Open `http://localhost:8000/camera_pose_demo/camera_pose_test.html` after starting the local server. Allow camera permission when prompted; Chrome or Edge is recommended. Internet access is required because the MediaPipe libraries and pose model are loaded from external URLs.
+
+This is a separate technical prototype for real-time webcam pose and skeleton tracking. It is not yet integrated into the main movement game. Reference-video comparison, synchronisation, and final scoring are future work.
+
 ## Main UI Prototype
 
 `Rauawaawa_game_demo.html` provides the main interface and interaction prototype. Kaumātua access does not require login. The prototype includes seated and standing selection, an exercise and game library, Voice Guidance, a Staff login, and a Staff management workflow for uploading or recording content, simulated processing, and publishing. Staff processing and backend behaviour are currently simulated in the browser.

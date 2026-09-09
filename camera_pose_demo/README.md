@@ -1,12 +1,24 @@
-# Camera Pose Demo
+# Camera Pose Tracking Demo
 
-A lightweight browser prototype for testing webcam input and real-time, single-person pose tracking with Google MediaPipe.
+A standalone technical prototype for the Rauawaawa movement game. It tests browser webcam input and real-time, single-person pose tracking with Google MediaPipe.
 
-## Live demo
+This demo is currently separate from the main game prototype and is not yet integrated into the Kaumātua exercise flow.
 
-[Open the camera pose test](https://harlanluo.github.io/camera_pose_demo/camera_pose_test.html)
+## Run the Demo Locally
 
-Allow camera access when prompted. The page requests video only and does not request microphone access.
+GitHub Pages is not available for this private repository on the current plan. Clone or download the main repository, then run this command from its root:
+
+```bash
+python -m http.server 8000
+```
+
+Open:
+
+```text
+http://localhost:8000/camera_pose_demo/camera_pose_test.html
+```
+
+Allow camera permission when prompted. Chrome or Edge is recommended. The page requests video only and does not request microphone access. Internet access is required because the MediaPipe library, WASM runtime, and pose model are loaded from external CDN and model URLs.
 
 ## Features
 
@@ -37,22 +49,6 @@ Hold a pose for about 600 milliseconds to confirm it. A confirmed pose remains v
 Knee targets require both hips and knees to be visible. They are intended only as technical landmark tests.
 
 This prototype does not include scoring, percentage similarity, exercise-video comparison, recording, pose history, or backend services.
-
-## Run locally
-
-Camera access and MediaPipe module loading may not work when the HTML file is opened directly with `file://`. Serve the repository through localhost instead:
-
-```bash
-python -m http.server 8000
-```
-
-Then open:
-
-```text
-http://localhost:8000/camera_pose_test.html
-```
-
-VS Code Live Server can also be used.
 
 ## Technology
 
