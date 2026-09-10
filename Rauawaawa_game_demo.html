@@ -178,9 +178,16 @@
             top: 24px;
             left: 28px;
             right: 28px;
-            display: flex;
-            justify-content: space-between;
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto auto;
             align-items: center;
+            gap: 18px;
+            z-index: 10;
+        }
+
+        .home-voice-btn {
+            font-size: 15px;
+            padding: 9px 14px;
         }
 
         .home-brand {
@@ -321,21 +328,48 @@
 
         .game-header-bar {
             width: 100%;
-            height: 64px;
+            min-height: 72px;
             padding: 10px 28px;
-            display: flex;
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
             align-items: center;
-            justify-content: space-between;
+            gap: 16px;
             background: #dce1e5;
             border-bottom: 2px solid #b8c0c8;
         }
 
-        .game-status-group {
+        .game-header-left {
             display: flex;
             align-items: center;
-            gap: 32px;
+            gap: 12px;
+            min-width: 0;
+        }
+
+        .game-header-left .voice-icon-btn {
+            flex: 0 0 auto;
+            padding: 8px 12px;
+            font-size: 15px;
+        }
+
+        .game-title-display {
+            grid-column: 2;
             font-family: 'Fredoka', sans-serif;
-            font-size: 24px;
+            font-size: 28px;
+            font-weight: 700;
+            color: #1f2a37;
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        .game-score-wrap {
+            display: flex;
+            justify-content: flex-end;
+            min-width: 0;
+        }
+
+        .game-header-bar .status-pill {
+            font-family: 'Fredoka', sans-serif;
+            font-size: 19px;
             font-weight: 700;
             color: #212529;
         }
@@ -465,37 +499,13 @@
             background: #000;
         }
 
-        /* Red Finish Button (Demonstrate Only / Finish Game) */
-        .red-finish-box {
-            position: absolute;
-            bottom: 14px;
-            right: 14px;
+        .ctrl-finish {
             background: var(--color-finish);
             color: #ffffff;
-            border: 3px solid #ffffff;
-            border-radius: 10px;
-            padding: 10px 14px;
-            font-family: 'Nunito', sans-serif;
-            font-size: 14px;
-            font-weight: 900;
-            line-height: 1.2;
-            text-align: center;
-            cursor: pointer;
-            box-shadow: 0 6px 16px rgba(255, 51, 68, 0.5);
-            z-index: 10;
-            transition: all 0.2s ease;
-            animation: pulseRed 2s infinite;
         }
 
-        .red-finish-box:hover {
+        .ctrl-finish:hover {
             background: var(--color-finish-hover);
-            transform: scale(1.06);
-            box-shadow: 0 8px 22px rgba(255, 51, 68, 0.7);
-        }
-
-        @keyframes pulseRed {
-            0%, 100% { box-shadow: 0 0 0 0 rgba(255, 51, 68, 0.7); }
-            50% { box-shadow: 0 0 0 8px rgba(255, 51, 68, 0); }
         }
 
         /* Full Screen Layout Mode */
@@ -785,7 +795,7 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 30px;
+            gap: 24px;
         }
 
         .start-top {
@@ -813,11 +823,32 @@
             color: #1e293b;
         }
 
-        .role-subheading {
-            margin-top: -20px;
-            font-size: 21px;
-            color: #52606d;
-            text-align: center;
+        #screen-start .role-options {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 22px;
+            width: min(420px, 100%);
+        }
+
+        #screen-start .role-primary {
+            width: min(380px, 100%);
+            min-height: 150px;
+            padding: 26px;
+            font-size: 40px;
+        }
+
+        #screen-start .role-secondary {
+            width: min(230px, 100%);
+            min-height: 88px;
+            padding: 14px 20px;
+            border-radius: 18px;
+            font-size: 25px;
+        }
+
+        #screen-start .role-secondary small {
+            margin-top: 4px;
+            font-size: 14px;
         }
 
         .role-options,
@@ -1044,6 +1075,31 @@
             .start-voice-btn { font-size: 14px; }
             .role-btn,
             .staff-option-btn { min-height: 112px; }
+            #screen-start .role-primary { min-height: 128px; font-size: 34px; }
+            #screen-start .role-secondary { min-height: 78px; font-size: 22px; }
+            .home-top {
+                top: 16px;
+                left: 16px;
+                right: 16px;
+                gap: 10px;
+            }
+            .home-top .home-brand { font-size: 20px; gap: 6px; }
+            .home-voice-btn { font-size: 13px; padding: 7px 10px; }
+            .home-top .home-icon-btn { padding: 8px 12px; }
+            .home-content { padding: 90px 20px 24px; gap: 32px; }
+            .home-btn-group { width: 100%; gap: 20px; }
+            .home-mode-btn { flex: 1 1 0; width: auto; min-width: 0; height: 120px; font-size: 30px; }
+            .game-header-bar {
+                min-height: 82px;
+                padding: 8px 12px;
+                gap: 8px;
+            }
+            .game-header-left { gap: 6px; flex-wrap: wrap; }
+            .game-header-left .voice-icon-btn { padding: 6px 8px; font-size: 13px; }
+            .game-header-bar .status-pill { padding: 4px 8px; font-size: 15px; gap: 4px; }
+            .game-title-display { font-size: 22px; }
+            .game-controls-bar { height: 78px; padding: 10px 12px; gap: 10px; }
+            .ctrl-btn { flex: 1 1 0; height: 52px; padding: 0 12px; font-size: 18px; }
             .processing-steps { grid-template-columns: 1fr; text-align: left; }
         }
 
@@ -1087,19 +1143,17 @@
             </div>
             <div class="role-content">
                 <h1 class="role-heading">How would you like to continue?</h1>
-                <p class="role-subheading">Choose the area that is right for you.</p>
                 <div class="role-options">
-                    <button class="role-btn role-staff accessible-target"
+                    <button class="role-btn role-kaumatua role-primary accessible-target"
+                            data-speech="Start Game"
+                            onclick="handleAccessibleClick(this, () => goToScreen('screen-home'))">
+                        🧓 Start Game
+                    </button>
+                    <button class="role-btn role-staff role-secondary accessible-target"
                             data-speech="Staff login. Login required"
                             onclick="handleAccessibleClick(this, openStaffLogin)">
                         👥 Staff
                         <small>Login required</small>
-                    </button>
-                    <button class="role-btn role-kaumatua accessible-target"
-                            data-speech="Game session."
-                            onclick="handleAccessibleClick(this, () => goToScreen('screen-home'))">
-                        🧓 Kaumātua
-                        <small>Start Game</small>
                     </button>
                 </div>
             </div>
@@ -1113,10 +1167,16 @@
                 <div class="home-brand">
                     <span>🌟</span> Kaumātua Wellness
                 </div>
+                <button class="voice-icon-btn home-voice-btn accessible-target"
+                        data-speech="Toggle Voice Guidance Mode"
+                        aria-pressed="false"
+                        onclick="handleAccessibleClick(this, toggleVoiceMode)">
+                    🔊 Voice Guidance: <span class="voice-state">OFF</span>
+                </button>
                 <button class="home-icon-btn accessible-target"
-                        data-speech="Back to role selection"
+                        data-speech="Back to start page"
                         onclick="handleAccessibleClick(this, () => goToScreen('screen-start'))">
-                    ← Start
+                    ← Back
                 </button>
             </div>
 
@@ -1173,28 +1233,26 @@
         <div id="screen-game" class="screen">
             <!-- Top Status Bar -->
             <div class="game-header-bar">
-                <button class="voice-icon-btn accessible-target" 
-                        data-speech="Voice Guidance switch" 
-                        aria-pressed="false"
-                        onclick="handleAccessibleClick(this, toggleVoiceMode)">
-                    🔊 <span class="voice-text-badge">Voice: OFF</span>
-                </button>
-
-                <div class="game-status-group">
+                <div class="game-header-left">
+                    <button class="voice-icon-btn accessible-target"
+                            data-speech="Voice Guidance switch"
+                            aria-pressed="false"
+                            onclick="handleAccessibleClick(this, toggleVoiceMode)">
+                        🔊 <span class="voice-text-badge">Voice: OFF</span>
+                    </button>
                     <div class="status-pill timer">
                         <span>⏳</span>
-                        <span>Time remain: <span id="gameTimerDisplay">02:30</span></span>
+                        <span>Time remaining: <span id="gameTimerDisplay">02:30</span></span>
                     </div>
+                </div>
+
+                <div id="gameTitleDisplay" class="game-title-display">Game</div>
+
+                <div class="game-score-wrap">
                     <div class="status-pill score">
                         <span>⭐</span>
                         <span>Score: <span id="gameScoreDisplay">180</span></span>
                     </div>
-                </div>
-
-                <div style="width: 80px; text-align: right;">
-                    <button class="home-icon-btn accessible-target" data-speech="Return to Playlist" onclick="handleAccessibleClick(this, quitGame)">
-                        📋 List
-                    </button>
                 </div>
             </div>
 
@@ -1246,12 +1304,6 @@
                         <span style="font-size: 18px; margin-top: 8px; color: #ffca28;">Click Pause button again to resume</span>
                     </div>
 
-                    <!-- Red Box: Finish Button (Demonstrate Only / Finish Game) -->
-                    <button id="redFinishBtn" class="red-finish-box accessible-target" 
-                            data-speech="Finish game and view results" 
-                            onclick="handleAccessibleClick(this, finishGame)">
-                        Finish button<br><span style="font-size: 11px; opacity: 0.9;">(demonstrate only)</span>
-                    </button>
                 </div>
 
             </div>
@@ -1274,6 +1326,12 @@
                         data-speech="Toggle Full Screen view" 
                         onclick="handleAccessibleClick(this, toggleFullscreenMode)">
                     Full Screen
+                </button>
+
+                <button id="redFinishBtn" class="ctrl-btn ctrl-finish accessible-target"
+                        data-speech="Finish game and view results"
+                        onclick="handleAccessibleClick(this, finishGame)">
+                    Finish
                 </button>
             </div>
         </div>
@@ -1305,16 +1363,16 @@
 
                     <!-- Bottom Buttons Row -->
                     <div class="win-btn-row">
-                        <button class="win-btn btn-rest accessible-target" 
-                                data-speech="Have a rest and return home" 
-                                onclick="handleAccessibleClick(this, () => goToScreen('screen-home'))">
-                            🛋️ Have a rest
+                        <button class="win-btn btn-rest accessible-target"
+                                data-speech="Go Home"
+                                onclick="handleAccessibleClick(this, () => goToScreen('screen-start'))">
+                            🏠 Go Home
                         </button>
 
-                        <button class="win-btn btn-continue accessible-target" 
-                                data-speech="Continue to next game" 
+                        <button class="win-btn btn-continue accessible-target"
+                                data-speech="Next Game"
                                 onclick="handleAccessibleClick(this, continueNextGame)">
-                            ▶️ Continue
+                            ▶️ Next Game
                         </button>
                     </div>
                 </div>
@@ -1337,7 +1395,7 @@
                     <div class="demo-credentials">
                         <strong>Demo Staff Account</strong><br>
                         Username: <strong>staff</strong><br>
-                        Password: <strong>demo123</strong>
+                        Password: <strong>123</strong>
                     </div>
                     <form id="staffLoginForm" class="staff-form" onsubmit="handleStaffLogin(event)">
                         <label>Username
@@ -1490,7 +1548,6 @@
             <div class="staff-content">
                 <div class="staff-panel processing-panel">
                     <h2 id="processingTitle">Preparing your video…</h2>
-                    <p>This is a visual prototype simulation. No AI or video conversion is performed.</p>
                     <div class="progress-track" role="progressbar" aria-label="Simulated video processing" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
                         <div id="processingProgress" class="progress-fill"></div>
                     </div>
@@ -1635,6 +1692,9 @@
         // Start Game
         function startGame(gameNumber) {
             currentGameNumber = gameNumber;
+            const selectedGame = gameLibrary.find(game => game.id === gameNumber);
+            const selectedGameName = selectedGame ? selectedGame.name : `Game ${gameNumber}`;
+            document.getElementById('gameTitleDisplay').textContent = selectedGameName;
             goToScreen('screen-game');
             
             timeRemainingSec = 150; // 02:30
@@ -1658,10 +1718,7 @@
             startTimer();
 
             if (isVoiceMode) {
-                const numberWords = { 1: 'One', 2: 'Two', 3: 'Three', 4: 'Four', 5: 'Five', 6: 'Six' };
-                const selectedGame = gameLibrary.find(game => game.id === gameNumber);
-                const spokenGameName = selectedGame ? selectedGame.name : `Game ${numberWords[gameNumber] || gameNumber}`;
-                speak(`Starting ${currentMode} ${spokenGameName}. Let's move!`);
+                speak(`Starting ${currentMode} ${selectedGameName}. Let's move!`);
             }
         }
 
@@ -1798,7 +1855,7 @@
                 return;
             }
 
-            if (username !== 'staff' || password !== 'demo123') {
+            if (username !== 'staff' || password !== '123') {
                 message.textContent = 'Incorrect username or password. Please use the demo account shown above.';
                 return;
             }
