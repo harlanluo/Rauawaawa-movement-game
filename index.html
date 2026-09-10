@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kaumātua Movement Game - Accessible Prototype</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="js/app.js" defer></script>
+</head>
+<body>
+
+    <!-- Main Prototype Container -->
+    <div id="screen-container">
+
+        <!-- ======================================================== -->
+        <!-- START: ROLE SELECTION                                    -->
+        <!-- ======================================================== -->
+        <div id="screen-start" class="screen active">
+            <div class="start-top">
+                <div class="home-brand"><span>🌟</span> Kaumātua Wellness</div>
+                <button class="voice-icon-btn start-voice-btn accessible-target"
+                        data-speech="Toggle Voice Guidance Mode"
+                        aria-pressed="false"
+                        onclick="handleAccessibleClick(this, toggleVoiceMode)">
+                    🔊 Voice Guidance: <span class="voice-state">OFF</span>
+                </button>
+            </div>
+            <div class="role-content">
+                <h1 class="role-heading">How would you like to continue?</h1>
+                <div class="role-options">
+                    <button class="role-btn role-kaumatua role-primary accessible-target"
+                            data-speech="Start Game"
+                            onclick="handleAccessibleClick(this, () => goToScreen('screen-home'))">
+                        🧓 Start Game
+                    </button>
+                    <button class="role-btn role-staff role-secondary accessible-target"
+                            data-speech="Staff login. Login required"
+                            onclick="handleAccessibleClick(this, openStaffLogin)">
+                        👥 Staff
+                        <small>Login required</small>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ======================================================== -->
+        <!-- SCREEN 1: HOMEPAGE                                       -->
+        <!-- ======================================================== -->
+        <div id="screen-home" class="screen">
+            <div class="home-top">
+                <div class="home-brand">
+                    <span>🌟</span> Kaumātua Wellness
+                </div>
+                <button class="voice-icon-btn home-voice-btn accessible-target"
+                        data-speech="Toggle Voice Guidance Mode"
+                        aria-pressed="false"
+                        onclick="handleAccessibleClick(this, toggleVoiceMode)">
+                    🔊 Voice Guidance: <span class="voice-state">OFF</span>
+                </button>
+                <button class="home-icon-btn accessible-target"
+                        data-speech="Back to start page"
+                        onclick="handleAccessibleClick(this, () => goToScreen('screen-start'))">
+                    ← Back
+                </button>
+            </div>
+
+            <div class="home-content">
+                <h1 class="home-heading">Select Your Mode</h1>
+
+                <div class="home-btn-group">
+                    <button class="home-mode-btn btn-seated accessible-target"
+                            data-speech="Seated mode"
+                            onclick="handleAccessibleClick(this, () => openPlaylist('Seated'))">
+                        <span>🪑</span>
+                        <span>Seated</span>
+                    </button>
+
+                    <button class="home-mode-btn btn-standing accessible-target"
+                            data-speech="Standing mode"
+                            onclick="handleAccessibleClick(this, () => openPlaylist('Standing'))">
+                        <span>🧍</span>
+                        <span>Standing</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ======================================================== -->
+        <!-- SCREEN 2: PLAYLIST (Seated / Standing)                  -->
+        <!-- ======================================================== -->
+        <div id="screen-playlist" class="screen">
+            <div class="screen-top-bar">
+                <button class="voice-icon-btn accessible-target"
+                        data-speech="Voice Guidance switch"
+                        aria-pressed="false"
+                        onclick="handleAccessibleClick(this, toggleVoiceMode)">
+                    🔊 <span class="voice-text-badge">Voice: OFF</span>
+                </button>
+
+                <div id="playlistHeaderTitle" class="screen-title">Seated Playlist</div>
+
+                <button class="home-icon-btn accessible-target"
+                        data-speech="Back to Home"
+                        onclick="handleAccessibleClick(this, () => goToScreen('screen-home'))">
+                    🏠 Home
+                </button>
+            </div>
+
+            <div class="playlist-wrap">
+                <div id="kaumatuaGameGrid" class="playlist-grid"></div>
+            </div>
+        </div>
+
+        <!-- ======================================================== -->
+        <!-- SCREEN 3: GAME SCREEN (Split Screen & Full Screen)       -->
+        <!-- ======================================================== -->
+        <div id="screen-game" class="screen">
+            <!-- Top Status Bar -->
+            <div class="game-header-bar">
+                <div class="game-header-left">
+                    <button class="voice-icon-btn accessible-target"
+                            data-speech="Voice Guidance switch"
+                            aria-pressed="false"
+                            onclick="handleAccessibleClick(this, toggleVoiceMode)">
+                        🔊 <span class="voice-text-badge">Voice: OFF</span>
+                    </button>
+                    <div class="status-pill timer">
+                        <span>⏳</span>
+                        <span>Time remaining: <span id="gameTimerDisplay">02:30</span></span>
+                    </div>
+                </div>
+
+                <div id="gameTitleDisplay" class="game-title-display">Game</div>
+
+                <div class="game-score-wrap">
+                    <div class="status-pill score">
+                        <span>⭐</span>
+                        <span>Score: <span id="gameScoreDisplay">180</span></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Split/Full Stage -->
+            <div id="gameStage" class="game-stage-container">
+
+                <!-- Left: User Avatar -->
+                <div id="avatarPanel" class="stage-avatar-panel">
+                    <div class="avatar-label">👤 User Avatar</div>
+
+                    <div class="avatar-svg-wrap">
+                        <div class="avatar-wave-rings"></div>
+
+                        <!-- Kaumātua Cyan Silhouette Avatar -->
+                        <svg id="avatarSvg" class="avatar-figure" viewBox="0 0 200 320" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <!-- Head -->
+                            <circle cx="100" cy="45" r="26" fill="#00D2D3" />
+                            <!-- Neck -->
+                            <path d="M93 70 H107 V82 H93 Z" fill="#00D2D3" />
+                            <!-- Torso -->
+                            <path d="M78 82 C72 82, 68 88, 68 96 L74 185 C74 192, 80 198, 88 198 H112 C120 198, 126 192, 126 185 L132 96 C132 88, 128 82, 122 82 Z" fill="#00D2D3" />
+                            <!-- Left Arm (Dynamic Wave) -->
+                            <path id="leftArm" d="M68 92 C55 105, 38 120, 32 145 C28 160, 36 172, 44 170 C52 168, 56 150, 68 135 L76 110 Z" fill="#00D2D3" />
+                            <!-- Right Arm (Dynamic Wave) -->
+                            <path id="rightArm" d="M132 92 C145 105, 162 120, 168 145 C172 160, 164 172, 156 170 C148 168, 144 150, 132 135 L124 110 Z" fill="#00D2D3" />
+                            <!-- Left Leg -->
+                            <path d="M82 195 L72 275 C71 285, 78 295, 88 295 C96 295, 100 286, 98 276 L94 195 Z" fill="#00D2D3" />
+                            <!-- Right Leg -->
+                            <path d="M118 195 L128 275 C129 285, 122 295, 112 295 C104 295, 100 286, 102 276 L106 195 Z" fill="#00D2D3" />
+                            <!-- Movement Particles -->
+                            <circle cx="36" cy="140" r="4" fill="#E0F7FA" opacity="0.8" />
+                            <circle cx="164" cy="140" r="4" fill="#E0F7FA" opacity="0.8" />
+                            <circle cx="100" cy="30" r="3" fill="#E0F7FA" opacity="0.9" />
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- Right: Uploaded Video Player (1m Full Video) -->
+                <div id="videoPanel" class="stage-video-panel">
+
+                    <video id="gameVideo" class="video-player" playsinline preload="auto">
+                        <source id="videoSourceEl" src="https://idyllic-palmier-0167d8.netlify.app/optimized.mp4" type="video/mp4">
+                        Your browser does not support the video tag.
+                    </video>
+
+                    <!-- Pause Overlay -->
+                    <div id="pauseOverlay" class="pause-overlay">
+                        <span>⏸️ GAME PAUSED</span>
+                        <span style="font-size: 18px; margin-top: 8px; color: #ffca28;">Click Pause button again to resume</span>
+                    </div>
+
+                </div>
+
+            </div>
+
+            <!-- Bottom Controls Bar -->
+            <div class="game-controls-bar">
+                <button class="ctrl-btn ctrl-quit accessible-target"
+                        data-speech="Quit the game"
+                        onclick="handleAccessibleClick(this, quitGame)">
+                    Quit
+                </button>
+
+                <button id="btnPauseGame" class="ctrl-btn ctrl-pause accessible-target"
+                        data-speech="Pause or resume game"
+                        onclick="handleAccessibleClick(this, togglePauseGame)">
+                    Pause
+                </button>
+
+                <button id="btnFullscreenToggle" class="ctrl-btn ctrl-fullscreen accessible-target"
+                        data-speech="Toggle Full Screen view"
+                        onclick="handleAccessibleClick(this, toggleFullscreenMode)">
+                    Full Screen
+                </button>
+
+                <button id="redFinishBtn" class="ctrl-btn ctrl-finish accessible-target"
+                        data-speech="Finish game and view results"
+                        onclick="handleAccessibleClick(this, finishGame)">
+                    Finish
+                </button>
+            </div>
+        </div>
+
+        <!-- ======================================================== -->
+        <!-- SCREEN 4: WIN SCREEN                                     -->
+        <!-- ======================================================== -->
+        <div id="screen-win" class="screen">
+            <canvas id="winConfettiCanvas" class="win-confetti-canvas"></canvas>
+
+            <div class="win-box">
+                <h1 class="win-title">
+                    <span>🎉</span> Congratulations! <span>🎉</span>
+                </h1>
+
+                <div class="win-score">
+                    <span>Your score is</span>
+                    <span class="score-val" id="finalScoreVal">180</span>
+                    <span style="font-size: 34px;">🎊</span>
+                </div>
+
+                <div class="win-btn-layout">
+                    <!-- Top Retry Button -->
+                    <button class="win-btn btn-retry accessible-target"
+                            data-speech="Retry this game"
+                            onclick="handleAccessibleClick(this, restartGame)">
+                        🔄 Retry
+                    </button>
+
+                    <!-- Bottom Buttons Row -->
+                    <div class="win-btn-row">
+                        <button class="win-btn btn-rest accessible-target"
+                                data-speech="Go Home"
+                                onclick="handleAccessibleClick(this, () => goToScreen('screen-start'))">
+                            🏠 Go Home
+                        </button>
+
+                        <button class="win-btn btn-continue accessible-target"
+                                data-speech="Next Game"
+                                onclick="handleAccessibleClick(this, continueNextGame)">
+                            ▶️ Next Game
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ======================================================== -->
+        <!-- STAFF LOGIN                                              -->
+        <!-- ======================================================== -->
+        <div id="screen-staff-login" class="screen staff-screen">
+            <div class="screen-top-bar">
+                <button class="home-icon-btn accessible-target"
+                        data-speech="Back to start page"
+                        onclick="handleAccessibleClick(this, () => goToScreen('screen-start'))">← Back</button>
+                <div class="screen-title">Staff Login</div>
+                <div style="width: 84px;"></div>
+            </div>
+            <div class="staff-content">
+                <div class="staff-panel">
+                    <div class="demo-credentials">
+                        <strong>Demo Staff Account</strong><br>
+                        Username: <strong>staff</strong><br>
+                        Password: <strong>123</strong>
+                    </div>
+                    <form id="staffLoginForm" class="staff-form" onsubmit="handleStaffLogin(event)">
+                        <label>Username
+                            <input id="staffUsername" type="text" autocomplete="username" aria-describedby="staffLoginMessage">
+                        </label>
+                        <label>Password
+                            <input id="staffPassword" type="password" autocomplete="current-password" aria-describedby="staffLoginMessage">
+                        </label>
+                        <div id="staffLoginMessage" class="form-message" role="alert" aria-live="polite"></div>
+                        <button class="staff-btn" type="submit">Login</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- ======================================================== -->
+        <!-- STAFF DASHBOARD                                          -->
+        <!-- ======================================================== -->
+        <div id="screen-staff-dashboard" class="screen staff-screen">
+            <div class="screen-top-bar">
+                <div class="home-brand"><span>👥</span> Staff Area</div>
+                <div class="screen-title">Dashboard</div>
+                <button class="home-icon-btn" onclick="logoutStaff()">Logout</button>
+            </div>
+            <div class="staff-content">
+                <p class="prototype-note"><strong>Prototype mode:</strong> Game changes last only until this page is refreshed.</p>
+                <div class="dashboard-options">
+                    <button class="staff-option-btn" onclick="openStaffLibrary()">📚 Game Library<small>View and modify games</small></button>
+                    <button class="staff-option-btn" onclick="openAddGame()">➕ Add New Game<small>Upload or record a video</small></button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ======================================================== -->
+        <!-- STAFF GAME LIBRARY MANAGEMENT                            -->
+        <!-- ======================================================== -->
+        <div id="screen-staff-library" class="screen staff-screen">
+            <div class="screen-top-bar">
+                <button class="home-icon-btn" onclick="goToScreen('screen-staff-dashboard')">← Dashboard</button>
+                <div class="screen-title">Game Library</div>
+                <button class="home-icon-btn" onclick="logoutStaff()">Logout</button>
+            </div>
+            <div class="staff-content">
+                <div class="library-toolbar">
+                    <p><strong>Manage the current prototype games.</strong></p>
+                    <button class="staff-btn success" onclick="openAddGame()">+ Add New Game</button>
+                </div>
+                <div id="editGamePanel" class="staff-panel edit-panel">
+                    <form class="staff-form" onsubmit="saveGameEdit(event)">
+                        <input id="editGameId" type="hidden">
+                        <label>Game name<input id="editGameName" type="text" required></label>
+                        <label>Exercise mode
+                            <select id="editGameMode" required>
+                                <option value="Seated">Seated</option>
+                                <option value="Standing">Standing</option>
+                            </select>
+                        </label>
+                        <label>Description<textarea id="editGameDescription"></textarea></label>
+                        <div class="staff-actions">
+                            <button class="staff-btn success" type="submit">Save Changes</button>
+                            <button class="staff-btn secondary" type="button" onclick="cancelGameEdit()">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+                <div id="libraryStatusMessage" class="form-message" role="status" aria-live="polite"></div>
+                <div id="staffGameList" class="library-list"></div>
+            </div>
+        </div>
+
+        <!-- ======================================================== -->
+        <!-- ADD NEW GAME                                             -->
+        <!-- ======================================================== -->
+        <div id="screen-add-game" class="screen staff-screen">
+            <div class="screen-top-bar">
+                <button class="home-icon-btn" onclick="goToScreen('screen-staff-dashboard')">← Dashboard</button>
+                <div class="screen-title">Add New Game</div>
+                <button class="home-icon-btn" onclick="logoutStaff()">Logout</button>
+            </div>
+            <div class="staff-content">
+                <p class="prototype-note">Choose how to provide the movement video for this prototype game.</p>
+                <div class="add-game-options">
+                    <button class="staff-option-btn" onclick="openUploadVideo()">📁 Upload Video<small>Select a video from this device</small></button>
+                    <button class="staff-option-btn" onclick="openRecordVideo()">🎥 Record a Video<small>Use the simulated recorder</small></button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ======================================================== -->
+        <!-- UPLOAD VIDEO                                             -->
+        <!-- ======================================================== -->
+        <div id="screen-upload-video" class="screen staff-screen">
+            <div class="screen-top-bar">
+                <button class="home-icon-btn" onclick="goToScreen('screen-add-game')">← Back</button>
+                <div class="screen-title">Upload Video</div>
+                <button class="home-icon-btn" onclick="logoutStaff()">Logout</button>
+            </div>
+            <div class="staff-content">
+                <div class="staff-panel">
+                    <div class="file-drop-area">
+                        <p style="font-size: 42px;">📹</p>
+                        <p><strong>Select a local video file</strong></p>
+                        <input id="videoFileInput" type="file" accept="video/*" onchange="handleVideoFileSelected(event)" style="margin-top: 15px; user-select: text;">
+                        <p id="selectedVideoName" class="file-name" aria-live="polite">No file selected</p>
+                    </div>
+                    <p class="prototype-note" style="margin-top: 16px;">The file stays on this device. No server upload occurs.</p>
+                    <div class="staff-actions">
+                        <button id="uploadContinueBtn" class="staff-btn success" disabled onclick="beginProcessing('Uploaded video')">Continue to Processing</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ======================================================== -->
+        <!-- SIMULATED RECORD VIDEO                                   -->
+        <!-- ======================================================== -->
+        <div id="screen-record-video" class="screen staff-screen">
+            <div class="screen-top-bar">
+                <button class="home-icon-btn" onclick="leaveRecordScreen()">← Back</button>
+                <div class="screen-title">Record a Video</div>
+                <button class="home-icon-btn" onclick="logoutStaff()">Logout</button>
+            </div>
+            <div class="staff-content">
+                <p class="prototype-note"><strong>Simulated recorder:</strong> This demonstrates the recording workflow without camera access or saved media.</p>
+                <div class="staff-panel">
+                    <div class="record-preview">
+                        <div class="camera-icon">🎥</div>
+                        <div id="recordTimer" class="record-timer">00:00</div>
+                        <div id="recordingIndicator" class="recording-indicator">● RECORDING</div>
+                        <div id="recordStatus">Ready to record</div>
+                    </div>
+                    <div class="staff-actions">
+                        <button id="startRecordBtn" class="staff-btn danger" onclick="startSimulatedRecording()">Start Recording</button>
+                        <button id="stopRecordBtn" class="staff-btn secondary" disabled onclick="stopSimulatedRecording()">Stop Recording</button>
+                        <button id="retakeRecordBtn" class="staff-btn secondary" disabled onclick="resetSimulatedRecording()">Retake</button>
+                        <button id="recordContinueBtn" class="staff-btn success" disabled onclick="beginProcessing('Recorded video')">Continue</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ======================================================== -->
+        <!-- SIMULATED VIDEO-TO-GAME PROCESSING                       -->
+        <!-- ======================================================== -->
+        <div id="screen-processing" class="screen staff-screen">
+            <div class="screen-top-bar">
+                <button class="home-icon-btn" onclick="cancelProcessing()">Cancel</button>
+                <div class="screen-title">Video to Game</div>
+                <button class="home-icon-btn" onclick="logoutStaff()">Logout</button>
+            </div>
+            <div class="staff-content">
+                <div class="staff-panel processing-panel">
+                    <h2 id="processingTitle">Preparing your video…</h2>
+                    <div class="progress-track" role="progressbar" aria-label="Simulated video processing" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                        <div id="processingProgress" class="progress-fill"></div>
+                    </div>
+                    <div class="processing-steps">
+                        <span>1. Uploading video</span>
+                        <span>2. Extracting movement</span>
+                        <span>3. Creating avatar</span>
+                        <span>4. Preparing game</span>
+                        <span>5. Complete</span>
+                    </div>
+                    <button id="processingContinueBtn" class="staff-btn success" style="margin-top: 24px;" disabled onclick="openPublishScreen()">Continue to Publish</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ======================================================== -->
+        <!-- PUBLISH GAME                                             -->
+        <!-- ======================================================== -->
+        <div id="screen-publish-game" class="screen staff-screen">
+            <div class="screen-top-bar">
+                <button class="home-icon-btn" onclick="goToScreen('screen-add-game')">← Add Game</button>
+                <div class="screen-title">Publish Game</div>
+                <button class="home-icon-btn" onclick="logoutStaff()">Logout</button>
+            </div>
+            <div class="staff-content">
+                <div class="staff-panel">
+                    <form id="publishGameForm" class="staff-form" onsubmit="publishGame(event)">
+                        <label>Game name<input id="publishGameName" type="text" required maxlength="60"></label>
+                        <label>Exercise mode
+                            <select id="publishGameMode" required>
+                                <option value="Seated">Seated</option>
+                                <option value="Standing">Standing</option>
+                            </select>
+                        </label>
+                        <label>Short description (optional)<textarea id="publishGameDescription" maxlength="160"></textarea></label>
+                        <div id="publishMessage" class="form-message" role="status" aria-live="polite"></div>
+                        <button class="staff-btn success" type="submit">Publish to Game Library</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Voice Guidance Subtitle Bar -->
+        <div id="voice-subtitle"></div>
+
+    </div>
+
+
+</body>
+</html>
