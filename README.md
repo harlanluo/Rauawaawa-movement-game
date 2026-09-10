@@ -4,9 +4,8 @@
 
 ### 🎮 Movement Game Prototype
 
-[Open Movement Game Prototype](https://harlanluo.github.io/Rauawaawa-demo/Rauawaawa_game_demo.html)
+[Open Movement Game Prototype-prepering link]()
 
-Interactive HTML prototype containing the Kaumātua exercise flow, Voice Guidance, and Staff prototype workflow.
 
 ### 📷 Camera Pose Tracking Demo
 
