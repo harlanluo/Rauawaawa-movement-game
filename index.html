@@ -29,20 +29,21 @@
                 </button>
             </div>
             <div class="role-content">
-                <h1 class="role-heading">How would you like to continue?</h1>
+                <h1 class="role-heading">Rauawaawa Kaumātua Movement Game</h1>
                 <div class="role-options">
                     <button class="role-btn role-kaumatua role-primary accessible-target"
                             data-speech="Start Game"
                             onclick="handleAccessibleClick(this, () => goToScreen('screen-home'))">
-                        🧓 Start Game
-                    </button>
-                    <button class="role-btn role-staff role-secondary accessible-target"
-                            data-speech="Staff login. Login required"
-                            onclick="handleAccessibleClick(this, openStaffLogin)">
-                        👥 Staff
-                        <small>Login required</small>
+                        <span class="role-icon role-icon-primary" aria-hidden="true">🧓</span>
+                        <span>Start Game</span>
                     </button>
                 </div>
+                <button class="role-btn role-staff role-secondary accessible-target"
+                        data-speech="Staff login. Login required"
+                        onclick="handleAccessibleClick(this, openStaffLogin)">
+                    👥 Staff
+                    <small>Login required</small>
+                </button>
             </div>
         </div>
 
@@ -127,10 +128,6 @@
                             onclick="handleAccessibleClick(this, toggleVoiceMode)">
                         🔊 <span class="voice-text-badge">Voice: OFF</span>
                     </button>
-                    <div class="status-pill timer">
-                        <span>⏳</span>
-                        <span>Time remaining: <span id="gameTimerDisplay">02:30</span></span>
-                    </div>
                 </div>
 
                 <div id="gameTitleDisplay" class="game-title-display">Game</div>
@@ -193,6 +190,34 @@
 
                 </div>
 
+            </div>
+
+            <!-- Video Timeline -->
+            <div class="video-timeline" aria-label="Video playback controls">
+                <span id="videoCurrentTime" class="timeline-time">00:00</span>
+                <label for="videoProgress" class="sr-only">Video progress</label>
+                <input id="videoProgress"
+                       class="video-progress"
+                       type="range"
+                       min="0"
+                       max="1"
+                       step="0.1"
+                       value="0"
+                       aria-label="Video progress"
+                       disabled>
+                <span id="videoDuration" class="timeline-time">00:00</span>
+                <label for="playbackSpeed" class="speed-control">
+                    <span>Speed:</span>
+                    <select id="playbackSpeed" aria-label="Playback speed">
+                        <option value="0.5">0.5x</option>
+                        <option value="0.75">0.75x</option>
+                        <option value="1" selected>1x</option>
+                        <option value="1.25">1.25x</option>
+                        <option value="1.5">1.5x</option>
+                        <option value="1.75">1.75x</option>
+                        <option value="2">2x</option>
+                    </select>
+                </label>
             </div>
 
             <!-- Bottom Controls Bar -->
