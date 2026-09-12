@@ -8,8 +8,6 @@
         let isGameRunning = false;
         let isGamePaused = false;
         let isFullscreenActive = false;
-        let timerInterval = null;
-        let timeRemainingSec = 150; // 02:30
         let currentScore = 180;
         let nextGameId = 7;
         let selectedVideoFileName = '';
@@ -33,7 +31,10 @@
         const btnFullscreenToggle = document.getElementById('btnFullscreenToggle');
         const pauseOverlay = document.getElementById('pauseOverlay');
         const avatarSvg = document.getElementById('avatarSvg');
-        const gameTimerDisplay = document.getElementById('gameTimerDisplay');
+        const videoProgress = document.getElementById('videoProgress');
+        const videoCurrentTime = document.getElementById('videoCurrentTime');
+        const videoDuration = document.getElementById('videoDuration');
+        const playbackSpeed = document.getElementById('playbackSpeed');
         const gameScoreDisplay = document.getElementById('gameScoreDisplay');
         const finalScoreVal = document.getElementById('finalScoreVal');
 
@@ -99,9 +100,7 @@
             document.getElementById('gameTitleDisplay').textContent = selectedGameName;
             goToScreen('screen-game');
 
-            timeRemainingSec = 150; // 02:30
             currentScore = 180;
-            updateTimerDisplay();
             gameScoreDisplay.innerText = currentScore;
 
             isGameRunning = true;
@@ -111,39 +110,58 @@
             avatarSvg.classList.remove('paused');
 
             // Reset video to start
+            playbackSpeed.value = '1';
+            videoEl.playbackRate = 1;
             videoEl.currentTime = 0;
+            updateVideoTimeline();
             videoEl.play().catch(e => {
                 console.log('Video play triggered:', e);
             });
-
-            // Start countdown timer
-            startTimer();
 
             if (isVoiceMode) {
                 speak(`Starting ${currentMode} ${selectedGameName}. Let's move!`);
             }
         }
 
-        // Countdown Timer
-        function startTimer() {
-            clearInterval(timerInterval);
-            timerInterval = setInterval(() => {
-                if (!isGamePaused && isGameRunning) {
-                    if (timeRemainingSec > 0) {
-                        timeRemainingSec--;
-                        updateTimerDisplay();
-                    } else {
-                        finishGame();
-                    }
-                }
-            }, 1000);
+        function formatVideoTime(timeInSeconds) {
+            if (!Number.isFinite(timeInSeconds) || timeInSeconds < 0) return '00:00';
+            const wholeSeconds = Math.floor(timeInSeconds);
+            const mins = Math.floor(wholeSeconds / 60).toString().padStart(2, '0');
+            const secs = (wholeSeconds % 60).toString().padStart(2, '0');
+            return `${mins}:${secs}`;
         }
 
-        function updateTimerDisplay() {
-            const mins = Math.floor(timeRemainingSec / 60).toString().padStart(2, '0');
-            const secs = (timeRemainingSec % 60).toString().padStart(2, '0');
-            gameTimerDisplay.innerText = `${mins}:${secs}`;
+        function updateVideoTimeline() {
+            const duration = Number.isFinite(videoEl.duration) && videoEl.duration > 0
+                ? videoEl.duration
+                : 0;
+            const currentTime = Number.isFinite(videoEl.currentTime) && videoEl.currentTime >= 0
+                ? videoEl.currentTime
+                : 0;
+
+            videoCurrentTime.textContent = formatVideoTime(currentTime);
+            videoDuration.textContent = formatVideoTime(duration);
+            videoProgress.max = duration || 1;
+            videoProgress.value = Math.min(currentTime, duration || 0);
+            videoProgress.disabled = duration === 0;
         }
+
+        videoEl.addEventListener('timeupdate', updateVideoTimeline);
+        videoEl.addEventListener('loadedmetadata', updateVideoTimeline);
+        videoEl.addEventListener('durationchange', updateVideoTimeline);
+
+        videoProgress.addEventListener('input', function() {
+            const seekTime = Number(videoProgress.value);
+            if (Number.isFinite(seekTime) && Number.isFinite(videoEl.duration)) {
+                videoEl.currentTime = Math.min(Math.max(seekTime, 0), videoEl.duration);
+                videoCurrentTime.textContent = formatVideoTime(videoEl.currentTime);
+            }
+        });
+
+        playbackSpeed.addEventListener('change', function() {
+            const selectedSpeed = Number(playbackSpeed.value);
+            videoEl.playbackRate = Number.isFinite(selectedSpeed) ? selectedSpeed : 1;
+        });
 
         // Pause / Resume Game
         function togglePauseGame() {
@@ -221,7 +239,6 @@
         function stopGameSession() {
             isGameRunning = false;
             isGamePaused = false;
-            clearInterval(timerInterval);
             videoEl.pause();
         }
 
