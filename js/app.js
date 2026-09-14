@@ -15,14 +15,16 @@
         let recordingSeconds = 0;
         let processingInterval = null;
 
+        const DEFAULT_VIDEO_SRC = 'assets/videos/e9d87196a2d98e530ab1ddebd7c56c5e.mp4';
+
         // In-memory prototype library. Changes intentionally disappear on refresh.
         const gameLibrary = [
-            { id: 1, name: 'Game 1', mode: 'Both', description: 'Gentle Upper Body' },
-            { id: 2, name: 'Game 2', mode: 'Both', description: 'Arm Reach and Stretch' },
-            { id: 3, name: 'Game 3', mode: 'Both', description: 'Shoulder Twist and Wave' },
-            { id: 4, name: 'Game 4', mode: 'Both', description: 'Core Stability' },
-            { id: 5, name: 'Game 5', mode: 'Both', description: 'Side Tap Rhythm' },
-            { id: 6, name: 'Game 6', mode: 'Both', description: 'Gentle Cool Down' }
+            { id: 1, name: 'Game 1', mode: 'Both', description: 'Gentle Upper Body', videoSrc: DEFAULT_VIDEO_SRC },
+            { id: 2, name: 'Game 2', mode: 'Both', description: 'Arm Reach and Stretch', videoSrc: DEFAULT_VIDEO_SRC },
+            { id: 3, name: 'Game 3', mode: 'Both', description: 'Shoulder Twist and Wave', videoSrc: DEFAULT_VIDEO_SRC },
+            { id: 4, name: 'Game 4', mode: 'Both', description: 'Core Stability', videoSrc: DEFAULT_VIDEO_SRC },
+            { id: 5, name: 'Game 5', mode: 'Both', description: 'Side Tap Rhythm', videoSrc: DEFAULT_VIDEO_SRC },
+            { id: 6, name: 'Game 6', mode: 'Both', description: 'Gentle Cool Down', videoSrc: DEFAULT_VIDEO_SRC }
         ];
 
         const videoEl = document.getElementById('gameVideo');
@@ -97,6 +99,9 @@
             currentGameNumber = gameNumber;
             const selectedGame = gameLibrary.find(game => game.id === gameNumber);
             const selectedGameName = selectedGame ? selectedGame.name : `Game ${gameNumber}`;
+            const selectedVideoSrc = selectedGame && selectedGame.videoSrc
+                ? selectedGame.videoSrc
+                : DEFAULT_VIDEO_SRC;
             document.getElementById('gameTitleDisplay').textContent = selectedGameName;
             goToScreen('screen-game');
 
@@ -110,6 +115,10 @@
             avatarSvg.classList.remove('paused');
 
             // Reset video to start
+            if (videoSourceEl.getAttribute('src') !== selectedVideoSrc) {
+                videoSourceEl.setAttribute('src', selectedVideoSrc);
+                videoEl.load();
+            }
             playbackSpeed.value = '1';
             videoEl.playbackRate = 1;
             videoEl.currentTime = 0;
@@ -521,7 +530,8 @@
                 id: nextGameId++,
                 name,
                 mode: document.getElementById('publishGameMode').value,
-                description: document.getElementById('publishGameDescription').value.trim()
+                description: document.getElementById('publishGameDescription').value.trim(),
+                videoSrc: DEFAULT_VIDEO_SRC
             });
             selectedVideoFileName = '';
             openStaffLibrary();
