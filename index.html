@@ -21,11 +21,12 @@
         <div id="screen-start" class="screen active">
             <div class="start-top">
                 <div class="home-brand"><span>🌟</span> Kaumātua Wellness</div>
-                <button class="voice-icon-btn start-voice-btn accessible-target"
+                <button class="voice-icon-btn start-voice-btn player-voice-btn accessible-target"
                         data-speech="Toggle Voice Guidance Mode"
                         aria-pressed="false"
                         onclick="handleAccessibleClick(this, toggleVoiceMode)">
-                    🔊 Voice Guidance: <span class="voice-state">OFF</span>
+                    <span class="player-nav-icon" aria-hidden="true">🔊</span>
+                    <span>Voice Guidance: <span class="voice-state">OFF</span></span>
                 </button>
             </div>
             <div class="role-content">
@@ -55,35 +56,37 @@
                 <div class="home-brand">
                     <span>🌟</span> Kaumātua Wellness
                 </div>
-                <button class="voice-icon-btn home-voice-btn accessible-target"
+                <button class="voice-icon-btn home-voice-btn player-voice-btn accessible-target"
                         data-speech="Toggle Voice Guidance Mode"
                         aria-pressed="false"
                         onclick="handleAccessibleClick(this, toggleVoiceMode)">
-                    🔊 Voice Guidance: <span class="voice-state">OFF</span>
+                    <span class="player-nav-icon" aria-hidden="true">🔊</span>
+                    <span>Voice Guidance: <span class="voice-state">OFF</span></span>
                 </button>
-                <button class="home-icon-btn accessible-target"
+                <button class="home-icon-btn player-nav-btn accessible-target"
                         data-speech="Back to start page"
                         onclick="handleAccessibleClick(this, () => goToScreen('screen-start'))">
-                    ← Back
+                    <span class="player-nav-icon" aria-hidden="true">←</span>
+                    <span>Back</span>
                 </button>
             </div>
 
             <div class="home-content">
-                <h1 class="home-heading">Select Your Mode</h1>
+                <h1 class="home-heading player-page-title">Select Your Mode</h1>
 
                 <div class="home-btn-group">
                     <button class="home-mode-btn btn-seated accessible-target"
                             data-speech="Seated mode"
                             onclick="handleAccessibleClick(this, () => openPlaylist('Seated'))">
-                        <span>🪑</span>
-                        <span>Seated</span>
+                        <span class="mode-icon" aria-hidden="true">🪑</span>
+                        <span class="mode-label">Seated</span>
                     </button>
 
                     <button class="home-mode-btn btn-standing accessible-target"
                             data-speech="Standing mode"
                             onclick="handleAccessibleClick(this, () => openPlaylist('Standing'))">
-                        <span>🧍</span>
-                        <span>Standing</span>
+                        <span class="mode-icon" aria-hidden="true">🧍</span>
+                        <span class="mode-label">Standing</span>
                     </button>
                 </div>
             </div>
@@ -94,19 +97,21 @@
         <!-- ======================================================== -->
         <div id="screen-playlist" class="screen">
             <div class="screen-top-bar">
-                <button class="voice-icon-btn accessible-target"
+                <button class="voice-icon-btn player-voice-btn accessible-target"
                         data-speech="Voice Guidance switch"
                         aria-pressed="false"
                         onclick="handleAccessibleClick(this, toggleVoiceMode)">
-                    🔊 <span class="voice-text-badge">Voice: OFF</span>
+                    <span class="player-nav-icon" aria-hidden="true">🔊</span>
+                    <span class="voice-text-badge">Voice: OFF</span>
                 </button>
 
-                <div id="playlistHeaderTitle" class="screen-title">Seated Playlist</div>
+                <div id="playlistHeaderTitle" class="screen-title player-page-title">Seated Playlist</div>
 
-                <button class="home-icon-btn accessible-target"
+                <button class="home-icon-btn player-nav-btn accessible-target"
                         data-speech="Back to Home"
                         onclick="handleAccessibleClick(this, () => goToScreen('screen-home'))">
-                    🏠 Home
+                    <span class="player-nav-icon" aria-hidden="true">🏠</span>
+                    <span>Home</span>
                 </button>
             </div>
 
@@ -122,11 +127,12 @@
             <!-- Top Status Bar -->
             <div class="game-header-bar">
                 <div class="game-header-left">
-                    <button class="voice-icon-btn accessible-target"
+                    <button class="voice-icon-btn player-voice-btn accessible-target"
                             data-speech="Voice Guidance switch"
                             aria-pressed="false"
                             onclick="handleAccessibleClick(this, toggleVoiceMode)">
-                        🔊 <span class="voice-text-badge">Voice: OFF</span>
+                        <span class="player-nav-icon" aria-hidden="true">🔊</span>
+                        <span class="voice-text-badge">Voice: OFF</span>
                     </button>
                 </div>
 
@@ -270,7 +276,8 @@
                     <button class="win-btn btn-retry accessible-target"
                             data-speech="Retry this game"
                             onclick="handleAccessibleClick(this, restartGame)">
-                        🔄 Retry
+                        <span class="result-action-icon" aria-hidden="true">🔄</span>
+                        <span>Retry</span>
                     </button>
 
                     <!-- Bottom Buttons Row -->
@@ -278,13 +285,15 @@
                         <button class="win-btn btn-rest accessible-target"
                                 data-speech="Go Home"
                                 onclick="handleAccessibleClick(this, () => goToScreen('screen-start'))">
-                            🏠 Go Home
+                            <span class="result-action-icon" aria-hidden="true">🏠</span>
+                            <span>Go Home</span>
                         </button>
 
                         <button class="win-btn btn-continue accessible-target"
                                 data-speech="Next Game"
                                 onclick="handleAccessibleClick(this, continueNextGame)">
-                            ▶️ Next Game
+                            <span class="result-action-icon" aria-hidden="true">▶️</span>
+                            <span>Next Game</span>
                         </button>
                     </div>
                 </div>
