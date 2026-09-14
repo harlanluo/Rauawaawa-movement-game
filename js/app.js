@@ -40,6 +40,63 @@
         const gameScoreDisplay = document.getElementById('gameScoreDisplay');
         const finalScoreVal = document.getElementById('finalScoreVal');
 
+        let poseTracker = null;
+        let poseModule = null;
+        let poseSession = 0;
+        let poseDebugTimer = null;
+        const trackingStatus = document.getElementById('trackingStatus');
+        const poseDebug = new URLSearchParams(location.search).get('poseDebug') === '1';
+        const poseDebugPanel = document.getElementById('poseDebugPanel');
+
+        function renderPoseDiagnostics() {
+            if (!poseDebug) return;
+            poseDebugPanel.hidden = false;
+            poseDebugPanel.textContent = JSON.stringify(window.playerPoseTracking.getDiagnostics(), null, 2);
+        }
+
+        function updateTrackingStatus({ state, message }) {
+            if (trackingStatus.textContent !== message) trackingStatus.textContent = message;
+            trackingStatus.dataset.state = state;
+        }
+
+        async function startPlayerTracking() {
+            const session = ++poseSession;
+            updateTrackingStatus({ state: 'starting', message: 'Starting camera…' });
+            try {
+                if (!poseModule) {
+                    poseModule = import('./pose-tracker.js').catch(error => {
+                        poseModule = null;
+                        throw error;
+                    });
+                }
+                const { createPoseTracker } = await poseModule;
+                if (session !== poseSession || !isGameRunning) return;
+                if (!poseTracker) {
+                    poseTracker = createPoseTracker({
+                        forceCPU: new URLSearchParams(location.search).get('poseDelegate') === 'cpu',
+                        onStatus: updateTrackingStatus
+                    });
+                }
+                const started = poseTracker.start();
+                if (poseDebug) poseDebugTimer = setInterval(renderPoseDiagnostics, 1000);
+                if (isGamePaused) poseTracker.pauseProcessing();
+                await started;
+                renderPoseDiagnostics();
+            } catch (error) {
+                console.warn('Player tracker could not start', error);
+                if (session === poseSession && isGameRunning) {
+                    updateTrackingStatus({ state: 'unavailable', message: 'Camera unavailable' });
+                }
+            }
+        }
+
+        // Read-only access for future pose consumers and device testing; no session recording.
+        window.playerPoseTracking = Object.freeze({
+            getLatestLandmarks: () => poseTracker?.getLatestLandmarks() || null,
+            getDiagnostics: () => poseTracker?.getDiagnostics() || { state: 'not-loaded' }
+        });
+        window.addEventListener('pagehide', () => stopGameSession());
+
         // Screen Navigation
         function goToScreen(screenId) {
             clearVoiceFocus();
@@ -126,6 +183,7 @@
             videoEl.play().catch(e => {
                 console.log('Video play triggered:', e);
             });
+            void startPlayerTracking();
 
             if (isVoiceMode) {
                 speak(`Starting ${currentMode} ${selectedGameName}. Let's move!`);
@@ -178,6 +236,7 @@
 
             isGamePaused = !isGamePaused;
             if (isGamePaused) {
+                poseTracker?.pauseProcessing();
                 videoEl.pause();
                 avatarSvg.classList.add('paused');
                 pauseOverlay.classList.add('active');
@@ -186,6 +245,7 @@
                 if (isVoiceMode) speak("Game Paused");
             } else {
                 videoEl.play().catch(e => console.log(e));
+                poseTracker?.resumeProcessing();
                 avatarSvg.classList.remove('paused');
                 pauseOverlay.classList.remove('active');
                 btnPauseGame.innerText = 'Pause';
@@ -246,6 +306,11 @@
 
         // Stop session cleanly
         function stopGameSession() {
+            poseSession++;
+            poseTracker?.stop();
+            clearInterval(poseDebugTimer);
+            poseDebugTimer = null;
+            renderPoseDiagnostics();
             isGameRunning = false;
             isGamePaused = false;
             videoEl.pause();
