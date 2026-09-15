@@ -40,6 +40,103 @@
         const gameScoreDisplay = document.getElementById('gameScoreDisplay');
         const finalScoreVal = document.getElementById('finalScoreVal');
 
+        let poseTracker = null;
+        let poseModule = null;
+        let poseSession = 0;
+        let poseDebugTimer = null;
+        let cameraEnabled = false;
+        const cameraToggle = document.getElementById('cameraToggle');
+        const avatarPanel = document.getElementById('avatarPanel');
+        const avatarPose = createAvatarPoseController(avatarSvg);
+        const trackingStatus = document.getElementById('trackingStatus');
+        const poseDebug = new URLSearchParams(location.search).get('poseDebug') === '1';
+        const poseDebugPanel = document.getElementById('poseDebugPanel');
+
+        function renderPoseDiagnostics() {
+            if (!poseDebug) return;
+            poseDebugPanel.hidden = false;
+            poseDebugPanel.textContent = JSON.stringify(window.playerPoseTracking.getDiagnostics(), null, 2);
+        }
+
+        function updateTrackingStatus({ state, message }) {
+            if (trackingStatus.textContent !== message) trackingStatus.textContent = message;
+            trackingStatus.dataset.state = state;
+            avatarPanel.dataset.tracking = state;
+            if (state !== 'detected') avatarPose.reset();
+            if (state === 'unavailable') {
+                cameraEnabled = false;
+                clearInterval(poseDebugTimer);
+                poseDebugTimer = null;
+            }
+            const active = cameraEnabled && ['loading', 'looking', 'detected', 'paused'].includes(state);
+            cameraToggle.textContent = cameraEnabled && state === 'starting'
+                ? 'Cancel camera start' : active ? 'Camera: ON' : 'Camera: OFF';
+            cameraToggle.setAttribute('aria-pressed', String(cameraEnabled));
+            cameraToggle.setAttribute('data-speech', cameraEnabled ? 'Turn camera off' : 'Turn camera on');
+        }
+
+        function stopPlayerTracking() {
+            cameraEnabled = false;
+            poseSession++;
+            poseTracker?.stop();
+            clearInterval(poseDebugTimer);
+            poseDebugTimer = null;
+            updateTrackingStatus({ state: 'stopped', message: 'Camera off' });
+            renderPoseDiagnostics();
+        }
+
+        function togglePlayerCamera() {
+            if (!isGameRunning) return;
+            if (cameraEnabled) stopPlayerTracking();
+            else {
+                cameraEnabled = true;
+                void startPlayerTracking();
+            }
+        }
+
+        async function startPlayerTracking() {
+            const session = ++poseSession;
+            updateTrackingStatus({ state: 'starting', message: 'Starting camera…' });
+            try {
+                if (!poseModule) {
+                    poseModule = import('./pose-tracker.js').catch(error => {
+                        poseModule = null;
+                        throw error;
+                    });
+                }
+                const { createPoseTracker } = await poseModule;
+                if (session !== poseSession || !isGameRunning || !cameraEnabled) return;
+                if (!poseTracker) {
+                    poseTracker = createPoseTracker({
+                        forceCPU: new URLSearchParams(location.search).get('poseDelegate') === 'cpu',
+                        onStatus: updateTrackingStatus,
+                        onPose: timestamp => {
+                            if (cameraEnabled && isGameRunning && !isGamePaused) {
+                                avatarPose.update(poseTracker.getLatestLandmarks(), timestamp);
+                            }
+                        }
+                    });
+                }
+                const started = poseTracker.start();
+                if (poseDebug) poseDebugTimer = setInterval(renderPoseDiagnostics, 1000);
+                if (isGamePaused) poseTracker.pauseProcessing();
+                await started;
+                renderPoseDiagnostics();
+            } catch (error) {
+                console.warn('Player tracker could not start', error);
+                if (session === poseSession && isGameRunning) {
+                    updateTrackingStatus({ state: 'unavailable', message: 'Movement tracking unavailable' });
+                }
+            }
+        }
+
+        // Read-only access for future pose consumers and device testing; no session recording.
+        window.playerPoseTracking = Object.freeze({
+            getLatestLandmarks: () => poseTracker?.getLatestLandmarks() || null,
+            getDiagnostics: () => poseTracker?.getDiagnostics() || { state: 'not-loaded' }
+        });
+        window.addEventListener('pagehide', () => stopGameSession());
+
         // Screen Navigation
         function goToScreen(screenId) {
             clearVoiceFocus();
@@ -178,6 +275,8 @@
 
             isGamePaused = !isGamePaused;
             if (isGamePaused) {
+                if (cameraEnabled) poseTracker?.pauseProcessing();
+                avatarPose.reset();
                 videoEl.pause();
                 avatarSvg.classList.add('paused');
                 pauseOverlay.classList.add('active');
@@ -186,6 +285,7 @@
                 if (isVoiceMode) speak("Game Paused");
             } else {
                 videoEl.play().catch(e => console.log(e));
+                if (cameraEnabled) poseTracker?.resumeProcessing();
                 avatarSvg.classList.remove('paused');
                 pauseOverlay.classList.remove('active');
                 btnPauseGame.innerText = 'Pause';
@@ -246,6 +346,7 @@
 
         // Stop session cleanly
         function stopGameSession() {
+            stopPlayerTracking();
             isGameRunning = false;
             isGamePaused = false;
             videoEl.pause();
