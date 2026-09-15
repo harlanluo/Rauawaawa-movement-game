@@ -12,7 +12,9 @@ const deferred = () => {
     return { promise, resolve };
 };
 
-async function harness({ raf = false, gpuFails = false, cpuFails = false, permission, forceCPU = false } = {}) {
+async function harness({ raf = false, gpuFails = false, cpuFails = false, permission, forceCPU = false, modelGate, importFails = false, wasmFails = false, playFails = false, unavailable = false } = {}) {
+    const operations = [];
+    const warnings = [];
     const callbacks = new Map();
     const streams = [];
     const delegates = [];
@@ -23,7 +25,11 @@ async function harness({ raf = false, gpuFails = false, cpuFails = false, permis
     let detectionError = false;
     const video = {
         readyState: 2, currentTime: 0, videoWidth: 640, videoHeight: 480,
-        setAttribute() {}, pause() {}, play: async () => {}, srcObject: null
+        setAttribute() {}, pause() {}, play: async () => {
+            operations.push('play');
+            assert.ok(video.srcObject);
+            if (playFails) throw Error('play failed');
+        }, srcObject: null
     };
     const request = cb => { callbacks.set(++id, cb); return id; };
     const cancel = key => callbacks.delete(key);
@@ -37,21 +43,29 @@ async function harness({ raf = false, gpuFails = false, cpuFails = false, permis
     }
     const context = vm.createContext({
         document: { createElement: () => video },
-        navigator: { mediaDevices: { getUserMedia: async constraints => {
+        navigator: { mediaDevices: unavailable ? undefined : { getUserMedia: async constraints => {
             requests++;
+            operations.push('camera');
             assert.equal(constraints.audio, false);
             assert.equal(constraints.video.width.ideal, 640);
             if (permission) return permission(newStream);
             return newStream();
         } } },
         requestAnimationFrame: request, cancelAnimationFrame: cancel,
-        performance: { now: () => now }, console: { warn() {} }
+        location: { protocol: 'http:' }, isSecureContext: !unavailable,
+        performance: { now: () => now }, console: { warn: (...args) => warnings.push(args) }
     });
     const library = new vm.SyntheticModule(['FilesetResolver', 'PoseLandmarker'], function() {
-        this.setExport('FilesetResolver', { forVisionTasks: async () => ({}) });
+        this.setExport('FilesetResolver', { forVisionTasks: async () => {
+            operations.push('wasm');
+            if (wasmFails) throw Error('wasm failed');
+            return {};
+        } });
         this.setExport('PoseLandmarker', { createFromOptions: async (files, options) => {
             const delegate = options.baseOptions.delegate;
             delegates.push(delegate);
+            operations.push(delegate);
+            if (modelGate) await modelGate;
             assert.equal(options.numPoses, 1);
             assert.equal(options.runningMode, 'VIDEO');
             assert.equal(options.outputSegmentationMasks, false);
@@ -68,14 +82,18 @@ async function harness({ raf = false, gpuFails = false, cpuFails = false, permis
     }, { context });
     await library.link(() => {});
     await library.evaluate();
-    const module = new vm.SourceTextModule(source, { context, importModuleDynamically: () => library });
+    const module = new vm.SourceTextModule(source, { context, importModuleDynamically: () => {
+        operations.push('import');
+        if (importFails) throw Error('import failed');
+        return library;
+    } });
     await module.link(() => {});
     await module.evaluate();
     const tracker = module.namespace.createPoseTracker({ forceCPU,
         onStatus: status => { statuses.push(status); listeners.onStatus?.(status); },
         onPose: timestamp => listeners.onPose?.(timestamp)
     });
-    return { tracker, video, callbacks, streams, delegates, statuses, listeners,
+    return { tracker, video, callbacks, streams, delegates, statuses, listeners, operations, warnings,
         setLandmarks: value => { landmarks = value; },
         stats: () => ({ detections, closed, requests }),
         detectionError: () => { detectionError = true; },
@@ -120,6 +138,81 @@ for (const raf of [false, true]) test(`lifecycle, cap, reuse and cleanup (${raf 
     h.tracker.destroy();
     assert.equal(h.stats().closed, 1);
     assert.equal(h.callbacks.size, 0);
+});
+
+test('camera permission and attached video precede all MediaPipe work', async () => {
+    const h = await harness();
+    await h.tracker.start();
+    assert.deepEqual(h.operations, ['camera', 'play', 'import', 'wasm', 'GPU']);
+    assert.equal(h.callbacks.size, 1);
+    h.tracker.destroy();
+});
+
+test('denial skips MediaPipe; initialization failures release acquired tracks and are tracking errors', async () => {
+    const denied = await harness({ permission: () => { throw Object.assign(Error('denied'), { name: 'NotAllowedError' }); } });
+    await denied.tracker.start();
+    assert.deepEqual(denied.operations, ['camera']);
+    assert.equal(denied.tracker.getDiagnostics().errorCategory, 'camera');
+    for (const config of [{ importFails: true }, { wasmFails: true }, { gpuFails: true, cpuFails: true }]) {
+        const h = await harness(config);
+        await h.tracker.start();
+        assert.equal(h.operations[0], 'camera');
+        assert.equal(h.streams[0].getTracks()[0].readyState, 'ended');
+        assert.equal(h.video.srcObject, null);
+        assert.equal(h.callbacks.size, 0);
+        assert.equal(h.tracker.getDiagnostics().errorCategory, 'tracking');
+        assert.equal(h.statuses.at(-1).message, 'Movement tracking unavailable');
+    }
+    const fallback = await harness({ gpuFails: true });
+    await fallback.tracker.start();
+    assert.deepEqual(fallback.operations, ['camera', 'play', 'import', 'wasm', 'GPU', 'CPU']);
+    assert.equal(fallback.tracker.getDiagnostics().delegate, 'CPU');
+    fallback.tracker.destroy();
+});
+
+test('cancellation during model loading releases camera and resume cannot infer early', async () => {
+    const pending = deferred();
+    const h = await harness({ modelGate: pending.promise });
+    const started = h.tracker.start();
+    while (!h.delegates.length) await new Promise(r => setImmediate(r));
+    assert.equal(h.tracker.getDiagnostics().state, 'loading');
+    h.tracker.pauseProcessing(); h.tracker.resumeProcessing(); h.tick(1000);
+    assert.equal(h.stats().detections, 0);
+    assert.equal(h.callbacks.size, 0);
+    h.tracker.stop();
+    assert.equal(h.streams[0].getTracks()[0].readyState, 'ended');
+    pending.resolve(); await started;
+    assert.equal(h.video.srcObject, null);
+    assert.equal(h.callbacks.size, 0);
+    assert.equal(h.tracker.getDiagnostics().state, 'stopped');
+    h.tracker.destroy();
+});
+
+test('cancelled pending permission never initializes MediaPipe', async () => {
+    const gate = deferred();
+    const h = await harness({ permission: async create => { await gate.promise; return create(); } });
+    const started = h.tracker.start();
+    while (!h.stats().requests) await new Promise(r => setImmediate(r));
+    h.tracker.stop(); gate.resolve(); await started;
+    assert.deepEqual(h.operations, ['camera']);
+    assert.equal(h.streams[0].getTracks()[0].readyState, 'ended');
+    assert.equal(h.video.srcObject, null);
+    assert.equal(h.callbacks.size, 0);
+});
+
+test('camera capability and video playback failures retain stage details', async () => {
+    const missing = await harness({ unavailable: true });
+    await missing.tracker.start();
+    assert.equal(missing.warnings[0][1].protocol, 'http:');
+    assert.equal(missing.warnings[0][1].isSecureContext, false);
+    assert.equal(missing.tracker.getDiagnostics().errorCategory, 'camera');
+    const playback = await harness({ playFails: true });
+    await playback.tracker.start();
+    assert.deepEqual(playback.operations, ['camera', 'play']);
+    assert.match(playback.warnings[0][0], /video.play/);
+    assert.equal(playback.warnings[0][1].message, 'play failed');
+    assert.equal(playback.streams[0].getTracks()[0].readyState, 'ended');
+    assert.equal(playback.video.srcObject, null);
 });
 
 test('GPU fallback, forced CPU and total initialization failure', async () => {

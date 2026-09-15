@@ -68,7 +68,7 @@
                 clearInterval(poseDebugTimer);
                 poseDebugTimer = null;
             }
-            const active = cameraEnabled && ['looking', 'detected', 'paused'].includes(state);
+            const active = cameraEnabled && ['loading', 'looking', 'detected', 'paused'].includes(state);
             cameraToggle.textContent = cameraEnabled && state === 'starting'
                 ? 'Cancel camera start' : active ? 'Camera: ON' : 'Camera: OFF';
             cameraToggle.setAttribute('aria-pressed', String(cameraEnabled));
@@ -125,7 +125,7 @@
             } catch (error) {
                 console.warn('Player tracker could not start', error);
                 if (session === poseSession && isGameRunning) {
-                    updateTrackingStatus({ state: 'unavailable', message: 'Camera unavailable' });
+                    updateTrackingStatus({ state: 'unavailable', message: 'Movement tracking unavailable' });
                 }
             }
         }

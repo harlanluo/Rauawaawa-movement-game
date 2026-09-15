@@ -29,6 +29,13 @@ export function createPoseTracker({ onStatus = () => {}, onPose = () => {}, forc
     let inferenceMs = 0;
     let measuredFPS = 0;
     let lastSample = 0;
+    let ready = false;
+    let errorCategory = null;
+
+    async function step(label, operation) {
+        try { return await operation(); }
+        catch (error) { console.warn(`Player tracking: ${label}`, error); throw error; }
+    }
 
     function status(next, message) {
         if (state === next) return;
@@ -42,8 +49,8 @@ export function createPoseTracker({ onStatus = () => {}, onPose = () => {}, forc
         if (model) return;
         if (!initialization) {
             initialization = (async () => {
-                const { FilesetResolver, PoseLandmarker } = await import(VISION_URL);
-                const files = await FilesetResolver.forVisionTasks(WASM_ROOT);
+                const { FilesetResolver, PoseLandmarker } = await step('MediaPipe module import failed', () => import(VISION_URL));
+                const files = await step('FilesetResolver / WASM loading failed', () => FilesetResolver.forVisionTasks(WASM_ROOT));
                 for (const candidate of forceCPU ? ['CPU'] : ['GPU', 'CPU']) {
                     let created;
                     try {
@@ -52,7 +59,7 @@ export function createPoseTracker({ onStatus = () => {}, onPose = () => {}, forc
                             runningMode: 'VIDEO', numPoses: 1, outputSegmentationMasks: false
                         });
                     } catch (error) {
-                        console.warn(`Pose ${candidate} initialization failed`, error);
+                        console.warn(`Pose ${candidate} model initialization / asset loading failed (${MODEL_URL})`, error);
                         if (candidate === 'CPU') throw error;
                         continue;
                     }
@@ -75,6 +82,8 @@ export function createPoseTracker({ onStatus = () => {}, onPose = () => {}, forc
 
     function stop() {
         generation++;
+        ready = false;
+        errorCategory = null;
         cancelFrame();
         if (stream) stream.getTracks().forEach(track => track.stop());
         stream = null;
@@ -87,20 +96,21 @@ export function createPoseTracker({ onStatus = () => {}, onPose = () => {}, forc
         status('stopped', 'Camera off');
     }
 
-    function fail(error) {
-        console.warn('Player camera tracking unavailable', error);
+    function fail(error, category = 'camera', stage = 'camera stream') {
+        console.warn(`Player ${category} failure: ${stage}`, error);
         stop();
+        errorCategory = category;
         const messages = {
             NotAllowedError: 'Camera access is off',
             NotFoundError: 'No camera found',
             NotReadableError: 'Camera is busy',
             AbortError: 'Camera unavailable'
         };
-        status('unavailable', messages[error.name] || 'Camera unavailable');
+        status('unavailable', category === 'tracking' ? 'Movement tracking unavailable' : messages[error.name] || 'Camera unavailable');
     }
 
     function schedule(token) {
-        if (paused || !stream || token !== generation || frame !== null) return;
+        if (paused || !ready || !stream || token !== generation || frame !== null) return;
         const callback = now => {
             frame = null;
             if (paused || !stream || token !== generation) return;
@@ -123,7 +133,7 @@ export function createPoseTracker({ onStatus = () => {}, onPose = () => {}, forc
                     // Notify consumers only for fresh results, without another animation loop.
                     try { onPose(begin); }
                     catch (error) { console.warn('Pose consumer failed', error); }
-                } catch (error) { fail(error); return; }
+                } catch (error) { fail(error, 'tracking', 'pose inference'); return; }
             }
             schedule(token);
         };
@@ -137,10 +147,15 @@ export function createPoseTracker({ onStatus = () => {}, onPose = () => {}, forc
         // Serialize permission requests, including one still pending when a game was left.
         startup = startup.then(async () => {
             if (token !== generation || destroyed) return;
+            let category = 'camera';
+            let stage = 'getUserMedia';
             try {
-                if (!navigator.mediaDevices?.getUserMedia) throw new Error('getUserMedia unavailable');
-                await initialize();
-                if (token !== generation || destroyed) return;
+                if (!navigator.mediaDevices?.getUserMedia) {
+                    console.warn('Camera capability unavailable', {
+                        protocol: globalThis.location?.protocol, isSecureContext: globalThis.isSecureContext
+                    });
+                    throw new Error('getUserMedia unavailable');
+                }
                 const acquired = await navigator.mediaDevices.getUserMedia({
                     audio: false,
                     video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 },
@@ -155,14 +170,21 @@ export function createPoseTracker({ onStatus = () => {}, onPose = () => {}, forc
                     if (token === generation) fail(new Error('Camera stream ended'));
                 }, { once: true }));
                 video.srcObject = stream;
+                status('loading', 'Starting movement tracking…');
+                stage = 'video.play';
                 await video.play();
                 if (token !== generation || destroyed) return;
                 width = video.videoWidth;
                 height = video.videoHeight;
+                category = 'tracking';
+                stage = 'MediaPipe initialization';
+                await initialize();
+                if (token !== generation || destroyed) return;
+                ready = true;
                 status(paused ? 'paused' : 'looking', paused ? 'Tracking paused' : 'Looking for you…');
                 schedule(token);
             } catch (error) {
-                if (token === generation && !destroyed) fail(error);
+                if (token === generation && !destroyed) fail(error, category, stage);
             }
         });
         return startup;
@@ -179,7 +201,7 @@ export function createPoseTracker({ onStatus = () => {}, onPose = () => {}, forc
     function resumeProcessing() {
         paused = false;
         if (stream) {
-            status('looking', 'Looking for you…');
+            status(ready ? 'looking' : 'loading', ready ? 'Looking for you…' : 'Starting movement tracking…');
             schedule(generation);
         } else if (state === 'paused') status('starting', 'Starting camera…');
     }
@@ -194,7 +216,7 @@ export function createPoseTracker({ onStatus = () => {}, onPose = () => {}, forc
     return {
         initialize, start, pauseProcessing, resumeProcessing, stop, destroy,
         getLatestLandmarks: () => latest?.map(point => ({ ...point })) || null,
-        getDiagnostics: () => ({ state, cameraWidth: width, cameraHeight: height, delegate,
+        getDiagnostics: () => ({ state, errorCategory, cameraWidth: width, cameraHeight: height, delegate,
             targetInferenceFPS: 15, measuredInferenceFPS: measuredFPS, smoothedInferenceMs: inferenceMs,
             requestVideoFrameCallback: hasVideoCallbacks, personDetected: latest !== null,
             modelProfile: 'Lite float16', frameScheduled: frame !== null,
