@@ -42,6 +42,12 @@ Then open:
 
 Use the Camera button below the avatar to turn tracking on, then allow camera permission. Use localhost or HTTPS. Internet access is required for the public CDN library, runtime, and model.
 
+Opening `index.html` directly with `file://` is unsupported because browser module and camera restrictions can prevent tracking from working.
+
+## Reference pose preprocessing
+
+Use the separate [Python extraction tool](tools/reference-pose/README.md) to generate reference landmarks ahead of gameplay. One dataset in `assets/games/demo-standing/reference-pose.json` references the existing shared video. The tool defaults to Full float16 at 10 samples per second; it does not run in the game or implement scoring.
+
 ## Player tracking
 
 The main game tracks one player locally in the browser. Every game starts with the camera OFF, including Retry and Next Game. Entering a game does not load the model or request camera permission. The button below the avatar enables tracking and can cancel startup or turn the camera off. Turning it off, Finish, Quit, navigation, and page exit release camera tracks and stop processing. Pause stops processing; Resume only resumes an enabled camera. The model is reused between camera sessions.
