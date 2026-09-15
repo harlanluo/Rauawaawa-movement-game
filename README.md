@@ -22,6 +22,7 @@ This University of Waikato student project is an evolving prototype for a camera
 - `css/styles.css` — main application styling
 - `js/app.js` — main application behaviour
 - `js/pose-tracker.js` — reusable live player-camera tracker
+- `js/avatar-pose-controller.js` — stable, simplified avatar pose feedback
 - `assets/images/` — project image assets
 - `assets/videos/` — exercise and game video assets
 - `camera_pose_demo/` — standalone MediaPipe camera prototype
@@ -39,11 +40,13 @@ Then open:
 - Main prototype: `http://localhost:8000/`
 - Camera prototype: `http://localhost:8000/camera_pose_demo/camera_pose_test.html`
 
-Allow camera permission when starting a game (or using the camera prototype). Use localhost or HTTPS. Internet access is required for the public CDN library, runtime, and model.
+Use the Camera button below the avatar to turn tracking on, then allow camera permission. Use localhost or HTTPS. Internet access is required for the public CDN library, runtime, and model.
 
 ## Player tracking
 
-The main game now tracks one player locally in the browser. Webcam frames are never recorded or uploaded, and the webcam image remains hidden while the virtual avatar stays visible. The tracker loads on game start and reuses its model between games. Pause stops processing; Finish, Quit, navigation, and page exit release the camera.
+The main game tracks one player locally in the browser. Every game starts with the camera OFF, including Retry and Next Game. Entering a game does not load the model or request camera permission. The button below the avatar enables tracking and can cancel startup or turn the camera off. Turning it off, Finish, Quit, navigation, and page exit release camera tracks and stop processing. Pause stops processing; Resume only resumes an enabled camera. The model is reused between camera sessions.
+
+The avatar shows five simplified states: neutral, left hand up, right hand up, both hands up, and arms open. Reliable shoulder/wrist landmarks must indicate a state for 200 ms before switching, with smooth arm transitions (disabled for reduced-motion preferences). The player's anatomical left moves the screen-left arm, like a mirror. Camera off, unavailable, no player, or unreliable landmarks return the avatar to neutral. Webcam frames are never recorded or uploaded, and the webcam image remains hidden.
 
 Live tracking uses MediaPipe Tasks Vision 1.0.1 with the official Pose Landmarker **Lite float16** model, ideal 640 × 480 camera input, and a 15 FPS inference cap. GPU is preferred, with CPU fallback if initialization fails. Camera failure leaves the demonstration video and game controls usable. Demonstration videos are **not analysed live**. Scoring remains unchanged; future scoring will use separately pre-generated reference-pose data. The standalone camera demo remains unchanged.
 

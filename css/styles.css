@@ -495,46 +495,30 @@
 
         .avatar-svg-wrap {
             width: 100%;
-            height: 100%;
+            flex: 1;
+            min-height: 0;
+            padding-top: 38px;
             display: flex;
             align-items: center;
             justify-content: center;
             position: relative;
         }
 
-        /* Avatar silhouette styling & animation */
+        /* Pose feedback is driven only by live player landmarks. */
         .avatar-figure {
-            width: 220px;
-            height: 320px;
+            width: min(100%, 270px);
+            height: 100%;
+            max-height: 320px;
             filter: drop-shadow(0 8px 16px rgba(0, 188, 212, 0.3));
-            animation: avatarExercise 3s ease-in-out infinite alternate;
-        }
-
-        @keyframes avatarExercise {
-            0% { transform: translateY(0) scaleY(1) rotate(0deg); }
-            25% { transform: translateY(-8px) scaleY(1.02) rotate(-1.5deg); }
-            50% { transform: translateY(0) scaleY(0.99) rotate(0deg); }
-            75% { transform: translateY(-8px) scaleY(1.02) rotate(1.5deg); }
-            100% { transform: translateY(0) scaleY(1) rotate(0deg); }
-        }
-
-        .avatar-figure.paused {
-            animation-play-state: paused;
         }
 
         .avatar-wave-rings {
             position: absolute;
-            width: 280px;
-            height: 280px;
+            width: min(75%, 240px);
+            aspect-ratio: 1;
             border-radius: 50%;
             border: 2px dashed rgba(0, 188, 212, 0.4);
-            animation: rotateRings 12s linear infinite;
             pointer-events: none;
-        }
-
-        @keyframes rotateRings {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
         }
 
         /* Right Video View */
@@ -1314,11 +1298,6 @@
         }
 /* Player camera status; the camera input itself is detached and never displayed. */
 .tracking-status {
-    position: absolute;
-    bottom: 12px;
-    left: 12px;
-    right: 12px;
-    z-index: 2;
     padding: 7px 10px;
     border-radius: 12px;
     background: #14252e;
@@ -1339,6 +1318,47 @@
 .tracking-status[data-state="detected"]::before { background: #64e8a1; }
 .tracking-status[data-state="unavailable"]::before,
 .tracking-status[data-state="stopped"]::before { background: #c4cbd0; }
+.avatar-camera-controls {
+    flex: 0 0 auto;
+    width: 100%;
+    padding: 8px 12px 12px;
+    display: grid;
+    gap: 8px;
+    z-index: 2;
+}
+.camera-toggle {
+    min-height: 52px;
+    padding: 8px 14px;
+    border: 2px solid #007e83;
+    border-radius: 12px;
+    background: #fff;
+    color: #164349;
+    font: inherit;
+    font-size: clamp(16px, 1.7vw, 22px);
+    font-weight: 800;
+    cursor: pointer;
+}
+.camera-toggle[aria-pressed="true"] { background: #007e83; color: #fff; }
+.camera-toggle:focus-visible { outline: 4px solid #ff9800; outline-offset: 2px; }
+.stage-avatar-panel .avatar-figure { opacity: 0.5; transition: opacity 200ms; }
+.stage-avatar-panel[data-tracking="detected"] .avatar-figure { opacity: 1; }
+.stage-avatar-panel[data-tracking="detected"] { border-color: #00868a; box-shadow: inset 0 0 18px #00bcb42e; }
+#leftArm, #rightArm {
+    transform-box: view-box;
+    transition: transform 220ms ease-in-out;
+}
+/* Shoulder pivots in SVG user coordinates. */
+#leftArm { transform-origin: 70px 98px; }
+#rightArm { transform-origin: 130px 98px; }
+.avatar-figure[data-pose="leftHandUp"] #leftArm,
+.avatar-figure[data-pose="bothHandsUp"] #leftArm { transform: rotate(130deg); }
+.avatar-figure[data-pose="rightHandUp"] #rightArm,
+.avatar-figure[data-pose="bothHandsUp"] #rightArm { transform: rotate(-130deg); }
+.avatar-figure[data-pose="armsOpen"] #leftArm { transform: rotate(65deg); }
+.avatar-figure[data-pose="armsOpen"] #rightArm { transform: rotate(-65deg); }
+@media (prefers-reduced-motion: reduce) {
+    #leftArm, #rightArm, .stage-avatar-panel .avatar-figure { transition: none; }
+}
 .pose-debug-panel {
     position: absolute;
     top: 48px;

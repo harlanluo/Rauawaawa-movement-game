@@ -4,7 +4,7 @@ const MODEL_URL = 'https://storage.googleapis.com/mediapipe-models/pose_landmark
 
 // Only the hidden player camera is processed locally. Frames are never saved or uploaded.
 // Future reference poses will be loaded separately; demonstration videos are not inputs here.
-export function createPoseTracker({ onStatus = () => {}, forceCPU = false } = {}) {
+export function createPoseTracker({ onStatus = () => {}, onPose = () => {}, forceCPU = false } = {}) {
     const video = document.createElement('video');
     video.hidden = true;
     video.muted = true;
@@ -120,6 +120,9 @@ export function createPoseTracker({ onStatus = () => {}, forceCPU = false } = {}
                     lastSample = begin;
                     latest = result.landmarks[0]?.map(point => ({ ...point })) || null;
                     status(latest ? 'detected' : 'looking', latest ? 'Player detected' : 'Looking for you…');
+                    // Notify consumers only for fresh results, without another animation loop.
+                    try { onPose(begin); }
+                    catch (error) { console.warn('Pose consumer failed', error); }
                 } catch (error) { fail(error); return; }
             }
             schedule(token);

@@ -8,6 +8,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/styles.css">
+    <script src="js/avatar-pose-controller.js" defer></script>
     <script src="js/app.js" defer></script>
 </head>
 <body>
@@ -150,8 +151,7 @@
             <div id="gameStage" class="game-stage-container">
 
                 <!-- Left: User Avatar -->
-                <div id="avatarPanel" class="stage-avatar-panel">
-                    <div id="trackingStatus" class="tracking-status" role="status" aria-live="polite" data-state="stopped">Camera off</div>
+                <div id="avatarPanel" class="stage-avatar-panel" data-tracking="stopped">
                     <pre id="poseDebugPanel" class="pose-debug-panel" hidden></pre>
                     <div class="avatar-label">👤 User Avatar</div>
 
@@ -159,26 +159,28 @@
                         <div class="avatar-wave-rings"></div>
 
                         <!-- Kaumātua Cyan Silhouette Avatar -->
-                        <svg id="avatarSvg" class="avatar-figure" viewBox="0 0 200 320" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <svg id="avatarSvg" class="avatar-figure" data-pose="neutral" viewBox="-25 -10 250 330" fill="none" aria-label="Your movement avatar" role="img" xmlns="http://www.w3.org/2000/svg">
                             <!-- Head -->
                             <circle cx="100" cy="45" r="26" fill="#00D2D3" />
                             <!-- Neck -->
                             <path d="M93 70 H107 V82 H93 Z" fill="#00D2D3" />
                             <!-- Torso -->
                             <path d="M78 82 C72 82, 68 88, 68 96 L74 185 C74 192, 80 198, 88 198 H112 C120 198, 126 192, 126 185 L132 96 C132 88, 128 82, 122 82 Z" fill="#00D2D3" />
-                            <!-- Left Arm (Dynamic Wave) -->
+                            <!-- Screen-left arm follows the player's anatomical left. -->
                             <path id="leftArm" d="M68 92 C55 105, 38 120, 32 145 C28 160, 36 172, 44 170 C52 168, 56 150, 68 135 L76 110 Z" fill="#00D2D3" />
-                            <!-- Right Arm (Dynamic Wave) -->
+                            <!-- Screen-right arm follows the player's anatomical right. -->
                             <path id="rightArm" d="M132 92 C145 105, 162 120, 168 145 C172 160, 164 172, 156 170 C148 168, 144 150, 132 135 L124 110 Z" fill="#00D2D3" />
                             <!-- Left Leg -->
                             <path d="M82 195 L72 275 C71 285, 78 295, 88 295 C96 295, 100 286, 98 276 L94 195 Z" fill="#00D2D3" />
                             <!-- Right Leg -->
                             <path d="M118 195 L128 275 C129 285, 122 295, 112 295 C104 295, 100 286, 102 276 L106 195 Z" fill="#00D2D3" />
-                            <!-- Movement Particles -->
-                            <circle cx="36" cy="140" r="4" fill="#E0F7FA" opacity="0.8" />
-                            <circle cx="164" cy="140" r="4" fill="#E0F7FA" opacity="0.8" />
-                            <circle cx="100" cy="30" r="3" fill="#E0F7FA" opacity="0.9" />
                         </svg>
+                    </div>
+                    <div class="avatar-camera-controls">
+                        <div id="trackingStatus" class="tracking-status" role="status" aria-live="polite" data-state="stopped">Camera off</div>
+                        <button id="cameraToggle" type="button" class="camera-toggle accessible-target"
+                                aria-pressed="false" data-speech="Turn camera on"
+                                onclick="handleAccessibleClick(this, togglePlayerCamera)">Camera: OFF</button>
                     </div>
                 </div>
 
