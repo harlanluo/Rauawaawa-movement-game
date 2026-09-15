@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Reference pose · Visual QA</title>
+  <link rel="stylesheet" href="visualizer.css">
+</head>
+<body>
+<main>
+  <header><p class="eyebrow">DEVELOPMENT TOOL</p><h1>Reference pose · Visual QA</h1>
+    <p>Stored landmarks over the original video. No inference, interpolation or scoring.</p></header>
+  <p id="status" role="status">Loading reference data…</p>
+  <div class="layout">
+    <section aria-label="Video and overlay">
+      <div class="video-stage">
+        <video id="video" controls playsinline preload="metadata" controlslist="nofullscreen" disablepictureinpicture></video>
+        <canvas id="overlay" aria-hidden="true"></canvas>
+      </div>
+      <fieldset id="controls" disabled>
+        <legend>Inspect samples</legend>
+        <div class="row"><button id="previous">Previous sample</button><button id="next">Next sample</button>
+          <button id="next-missing">Next missing sample</button></div>
+        <form id="jump" class="row"><label>Sample index (0-based) <input id="sample-input" type="number" min="0" step="1" value="0" required></label><button>Go to sample</button></form>
+        <div class="row"><label><input id="skeleton" type="checkbox" checked> Skeleton</label>
+          <label><input id="points" type="checkbox" checked> Landmark points</label></div>
+      </fieldset>
+      <p class="note">Cyan lines and yellow points use raw, unmirrored x/y positions. Low-visibility landmarks are also drawn. Inspect inline; native video fullscreen may hide the overlay.</p>
+    </section>
+    <aside aria-label="QA information">
+      <h2>Current sample</h2><dl id="current"></dl>
+      <h2>Dataset</h2><dl id="summary"></dl>
+    </aside>
+  </div>
+  <section><h2>Missing detection ranges</h2>
+    <p>Contiguous missing samples, first to last timestamp (not inferred boundaries). Click a range to inspect its first sample.</p>
+    <p id="range-summary"></p><ul id="ranges"></ul>
+  </section>
+</main>
+<script>
+  // Inline so file:// still gives a useful message when module loading is blocked.
+  if (location.protocol === 'file:') {
+    document.getElementById('status').textContent = 'HTTP(S) required: run python -m http.server 8000 from the repository root, then open http://localhost:8000/tools/reference-pose/visualizer.html';
+    document.getElementById('status').className = 'error';
+  } else {
+    import('./visualizer.js').catch(error => {
+      document.getElementById('status').textContent = 'Unable to start visualizer. Check the local server and console.';
+      document.getElementById('status').className = 'error';
+      console.error(error);
+    });
+  }
+</script>
+</body>
+</html>
