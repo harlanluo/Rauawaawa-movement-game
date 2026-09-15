@@ -53,3 +53,23 @@ Run the browser game with `python -m http.server 8000` and open `http://localhos
 ## Current real-video result
 
 The command above processed the existing 1280 × 720 video: 2,196 decoded frames, 73,199.67 ms duration, and 732 samples at a requested 10 FPS (effective 10.00005 FPS). There are 564 detected poses (77.05%), each with 33 landmarks, and 168 explicit missing poses. First/last timestamps are 0 / 73,133 ms. The JSON is 1,975,203 bytes. The initial measured extraction took 15.45 seconds with the model already downloaded; runtime depends on hardware and excludes Python import time. No manual landmark-accuracy review or future scoring suitability is claimed.
+
+## Visual QA
+
+From the repository root run `python -m http.server 8000`, then open
+`http://localhost:8000/tools/reference-pose/visualizer.html` (HTTP(S) required; `file://` shows instructions).
+The separate development page displays the existing video and pre-generated JSON only. It does **not** load MediaPipe or a model, run inference, or change gameplay.
+
+Use normal video controls, Previous/Next sample, a 0-based sample index, or Next missing sample (wraps to the first missing sample). Stepping pauses and seeks the video. Skeleton and points can be toggled separately. The QA panel reports timestamps, signed delta, detection and totals. Missing poses clear the canvas and show an amber message; clickable ranges group consecutive null samples. Range endpoints are first/last sampled timestamps, not estimated continuous detection-loss boundaries.
+
+Matching uses binary search for the nearest timestamp, with ties choosing the earlier sample. Maximum distance is half the requested sample interval plus one source frame plus 1 ms for rounding (±84.3 ms for this dataset). Larger gaps show no match; no landmarks are interpolated. Drawing uses raw normalized coordinates and the standard [MediaPipe pose connections](https://github.com/google-ai-edge/mediapipe/blob/master/mediapipe/python/solutions/pose_connections.py). Low-visibility points remain visible, so uncertain limbs can look inaccurate.
+
+The page checks format, source path, timestamps, landmark values/count, and loaded video dimensions/duration. The video is fetched into browser memory as a blob so seeking works even with Python's basic server without byte-range support; no physical asset copy is created. Long videos need additional browser memory. This is an inline inspection tool: native video fullscreen/Picture-in-Picture is discouraged because it may omit the canvas. Metadata validation does not prove the video's byte identity (no source-hash comparison).
+
+Run focused tests with `node --test --test-isolation=none tools/reference-pose/visualizer-data.test.mjs` in addition to the extraction and camera tests.
+
+### Real-data inspection findings
+
+Browser spot checks at 0, 18.333, 36.633, 54.933 and 72.033 seconds found no obvious global coordinate offset or mirroring. However, the multi-person video alternates the stored single pose between front-left and front-right people. Some arm landmarks drift from the visible arm during side-facing movement; these are raw data limitations, not corrected by the viewer. This is a spot check, not an accuracy certification or confirmation of scoring suitability.
+
+Missing ranges are 15.233–16.233 s (11 samples), 29.233 s (1), 37.233 s (1), and 57.733–73.133 s (155). All four range starts were inspected: people remain visible at the three earlier missing sections; the longest range begins on a black frame, and the near-end check is also black. The longest sampled span is 15.400 seconds. No missing data or source assets were changed.
