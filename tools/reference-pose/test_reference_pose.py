@@ -41,6 +41,21 @@ class ValidationTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     validate(data)
 
+    def test_optional_coverage_partitions_timeline_and_rejects_pose_in_black(self):
+        self.data['usableRanges'] = [dict(startMs=0, endMs=100)]
+        self.data['coverage'] = dict(rangeConvention='start-inclusive-end-exclusive',
+                                     inactiveRanges=[dict(startMs=100, endMs=200)])
+        validate(self.data)
+        for field, value in [('startMs', -1), ('startMs', 101), ('endMs', 201), ('endMs', 0)]:
+            bad = copy.deepcopy(self.data)
+            bad['coverage']['inactiveRanges'][0][field] = value
+            with self.assertRaises(ValueError):
+                validate(bad)
+        bad = copy.deepcopy(self.data)
+        bad['frames'][1]['landmarks'] = bad['frames'][0]['landmarks']
+        with self.assertRaises(ValueError):
+            validate(bad)
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -49,7 +49,8 @@ function render() {
     }
   }
   const state = video.seeking ? 'Seeking video…' : !match ? 'No matching reference sample available' :
-    match.frame.landmarks === null ? 'Pose missing at this sample' : 'Pose detected';
+    data.coverage?.inactiveRanges.some(r => r.startMs <= timeMs && timeMs < r.endMs) ?
+      'Inactive: sustained near-black section' : match.frame.landmarks === null ? 'Pose missing at this sample' : 'Pose detected';
   $('status').textContent = state;
   $('status').className = !match || match.frame.landmarks === null ? 'missing' : '';
   table('current', [['Video time', seconds(timeMs)], ['Reference time', match ? seconds(match.frame.timeMs) : '—'],
@@ -103,7 +104,10 @@ async function start() {
   table('summary', [['Total samples', data.frames.length], ['Detected', detected], ['Missing', missing],
     ['Detected percentage', `${(100 * detected / data.frames.length).toFixed(2)}%`],
     ['Target rate', `${data.sampling.targetFps} FPS`], ['Match tolerance', `±${tolerance.toFixed(1)} ms`],
-    ['Source', data.sourceVideo], ['Reference', REFERENCE_JSON]]);
+    ['Source', data.sourceVideo], ['Reference', REFERENCE_JSON],
+    ['Subject tracking', data.subjectTracking?.strategy || 'Not specified'],
+    ['Usable coverage (not pose validity)', data.usableRanges ? data.usableRanges.map(r =>
+      `${seconds(r.startMs)}–${seconds(r.endMs)} (end exclusive)`).join('; ') || 'None' : 'Not specified']]);
   $('sample-input').max = data.frames.length - 1;
   $('next-missing').disabled = missing === 0;
   const longest = ranges.reduce((best, range) => !best || range.endMs - range.startMs > best.endMs - best.startMs ? range : best, null);

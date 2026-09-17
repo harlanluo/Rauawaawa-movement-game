@@ -12,12 +12,34 @@ export function validateReference(data) {
   require(Number.isFinite(data.sampling?.targetFps) && data.sampling.targetFps > 0 &&
     data.sampling.targetFps <= data.video.sourceFps, 'Invalid sampling targetFps.');
   require(Array.isArray(data.frames) && data.frames.length > 0, 'Reference frames must be a nonempty array.');
+  if ('usableRanges' in data || 'coverage' in data) {
+    require(data.coverage?.rangeConvention === 'start-inclusive-end-exclusive', 'Invalid coverage convention.');
+    const combined = [];
+    for (const ranges of [data.usableRanges, data.coverage?.inactiveRanges]) {
+      require(Array.isArray(ranges), 'Invalid coverage ranges.');
+      let end = -1;
+      for (const range of ranges) {
+        require(Number.isFinite(range?.startMs) && Number.isFinite(range?.endMs) &&
+          range.startMs >= 0 && range.startMs >= end && range.startMs < range.endMs &&
+          range.endMs <= data.video.durationMs, 'Invalid coverage range.');
+        end = range.endMs; combined.push(range);
+      }
+    }
+    let end = 0;
+    for (const range of combined.sort((a,b) => a.startMs-b.startMs)) {
+      require(range.startMs === end, 'Coverage must partition the source timeline.');
+      end = range.endMs;
+    }
+    require(end === data.video.durationMs, 'Incomplete coverage metadata.');
+  }
   let previous = -1;
   for (const [index, frame] of data.frames.entries()) {
     require(Number.isInteger(frame?.timeMs) && frame.timeMs > previous &&
       frame.timeMs < data.video.durationMs, `Invalid or unordered timestamp at sample ${index}.`);
     previous = frame.timeMs;
     if (frame.landmarks === null) continue;
+    require(!data.coverage?.inactiveRanges.some(range => range.startMs <= frame.timeMs &&
+      frame.timeMs < range.endMs), 'Pose in inactive range.');
     require(Array.isArray(frame.landmarks) && frame.landmarks.length === 33,
       `Sample ${index} must have 33 landmarks or explicit null.`);
     for (const point of frame.landmarks) {

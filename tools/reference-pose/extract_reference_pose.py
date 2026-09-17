@@ -6,8 +6,10 @@ import math
 from pathlib import Path
 import time
 import urllib.request
+from collections import Counter
 
 from validate_reference_pose import validate
+from subject_tracking import SubjectTracker, SETTINGS, BLACK_SETTINGS, is_near_black, coverage
 
 MODEL_URL = 'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_full/float16/1/pose_landmarker_full.task'
 MODEL_SHA256 = '5134a3aad27a58b93da0088d431f366da362b44e3ccfbe3462b3827a839011b1'
@@ -18,13 +20,15 @@ def sha256(path):
         return hashlib.file_digest(stream, 'sha256').hexdigest()
 
 
-def extract(source, output, fps, model):
+def extract(source, output, fps, model, debug=None):
     import cv2
     import mediapipe as mp
 
     started = time.perf_counter()
     if source.resolve() == output.resolve() or model.resolve() == output.resolve():
         raise ValueError('Output must differ from input and model')
+    if debug and debug.resolve() in (source.resolve(), output.resolve(), model.resolve()):
+        raise ValueError('Debug output must differ from input, output and model')
     if not source.is_file():
         raise ValueError(f'Input does not exist: {source}')
     if not math.isfinite(fps) or not 0 < fps <= 1000:
@@ -51,10 +55,12 @@ def extract(source, output, fps, model):
         options = mp.tasks.vision.PoseLandmarkerOptions(
             base_options=mp.tasks.BaseOptions(model_asset_path=str(model.resolve()),
                                              delegate=mp.tasks.BaseOptions.Delegate.CPU),
-            running_mode=mp.tasks.vision.RunningMode.VIDEO, num_poses=1,
+            running_mode=mp.tasks.vision.RunningMode.VIDEO, num_poses=SETTINGS['maxCandidates'],
             min_pose_detection_confidence=0.5, min_pose_presence_confidence=0.5,
             min_tracking_confidence=0.5, output_segmentation_masks=False)
         frames, count, width, height = [], 0, None, None
+        tracker, black, reasons = SubjectTracker(), [], Counter()
+        diagnostics = [] if debug else None
         with mp.tasks.vision.PoseLandmarker.create_from_options(options) as landmarker:
             while True:
                 ok, bgr = capture.read()
@@ -75,20 +81,31 @@ def extract(source, output, fps, model):
                 result = landmarker.detect_for_video(
                     mp.Image(image_format=mp.ImageFormat.SRGB,
                              data=cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)), round(timestamp))
-                pose = None
-                if result.pose_landmarks:
-                    pose = [{axis: getattr(point, axis) for axis in ('x', 'y', 'z', 'visibility')}
-                            for point in result.pose_landmarks[0]]
+                candidates = [[{axis: getattr(point, axis) for axis in ('x', 'y', 'z', 'visibility')}
+                               for point in candidate] for candidate in result.pose_landmarks]
+                gray = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)
+                dark = is_near_black(float(gray.mean()), float((gray > BLACK_SETTINGS['brightLuma']).mean()))
+                black.append(dark)
+                pose = tracker.select([] if dark else candidates, round(timestamp))
+                reasons['near-black' if dark else tracker.reason] += 1
+                if diagnostics is not None:
+                    diagnostics.append(dict(timeMs=round(timestamp), nearBlack=dark,
+                                            reason=tracker.reason, candidates=candidates))
                 frames.append({'timeMs': round(timestamp), 'landmarks': pose})
                 if len(frames) % 100 == 0:
                     print(f'Processed {len(frames)} samples ({timestamp / 1000:.1f}s)', flush=True)
         if count == 0 or (expected_count > 0 and count != expected_count):
             raise ValueError(f'Incomplete decode: {count} frames, expected {expected_count}')
+        duration = count * 1000 / source_fps
+        usable, inactive = coverage([frame['timeMs'] for frame in frames], black, duration)
         data = {'formatVersion': 1, 'sourceVideo': source.as_posix(),
+                'subjectTracking': SETTINGS,
+                'coverage': {**BLACK_SETTINGS, 'rangeConvention': 'start-inclusive-end-exclusive',
+                             'inactiveRanges': inactive}, 'usableRanges': usable,
                 'sourceSha256': sha256(source),
                 'poseModel': {'profile': 'Full float16', 'url': MODEL_URL,
                               'sha256': sha256(model), 'mediapipeVersion': mp.__version__,
-                              'runningMode': 'VIDEO', 'delegate': 'CPU', 'numPoses': 1,
+                              'runningMode': 'VIDEO', 'delegate': 'CPU', 'numPoses': SETTINGS['maxCandidates'],
                               'minPoseDetectionConfidence': 0.5, 'minPosePresenceConfidence': 0.5,
                               'minTrackingConfidence': 0.5},
                 'video': {'durationMs': count * 1000 / source_fps, 'width': width, 'height': height,
@@ -107,7 +124,11 @@ def extract(source, output, fps, model):
         finally:
             temporary.unlink(missing_ok=True)
         summary.update(outputBytes=output.stat().st_size, runtimeSeconds=time.perf_counter() - started)
+        summary.update(trackingReasons=dict(reasons), usableRanges=usable, inactiveRanges=inactive)
         print(json.dumps(summary, indent=2))
+        if debug:
+            debug.parent.mkdir(parents=True, exist_ok=True)
+            debug.write_text(json.dumps(diagnostics, allow_nan=False), encoding='utf-8')
     finally:
         capture.release()
 
@@ -117,7 +138,8 @@ if __name__ == '__main__':
     parser.add_argument('--input', required=True, type=Path)
     parser.add_argument('--output', required=True, type=Path)
     parser.add_argument('--fps', type=float, default=10)
+    parser.add_argument('--debug', type=Path, help='Optional candidate diagnostics; do not commit')
     parser.add_argument('--model', type=Path, default=Path(__file__).with_name('pose_landmarker_full.task'),
                         help='Cached official Full float16 model; downloaded if absent')
     args = parser.parse_args()
-    extract(args.input, args.output, args.fps, args.model)
+    extract(args.input, args.output, args.fps, args.model, args.debug)

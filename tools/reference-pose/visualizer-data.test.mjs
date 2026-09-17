@@ -19,10 +19,23 @@ test('real dataset validates and missing groups cover exactly all missing poses'
   assert.equal(validateReference(real), real);
   assert.equal(real.frames.length, 732);
   const ranges = missingRanges(real.frames);
-  assert.equal(ranges.reduce((sum, r) => sum + r.count, 0), 168);
-  assert.equal(real.frames.filter(f => f.landmarks !== null).length, 564);
+  assert.equal(ranges.reduce((sum, r) => sum + r.count, 0), 291);
+  assert.equal(real.frames.filter(f => f.landmarks !== null).length, 441);
   assert.equal(CONNECTIONS.length, 35);
   assert.ok(CONNECTIONS.flat().every(i => i >= 0 && i < 33));
+});
+test('optional coverage validates boundaries, partition and missing inactive samples', () => {
+  const legacy = structuredClone(real);
+  delete legacy.coverage; delete legacy.usableRanges;
+  assert.equal(validateReference(legacy), legacy);
+  assert.deepEqual(real.usableRanges, [{startMs:0, endMs:57733}]);
+  for (const mutate of [d=>d.usableRanges[0].endMs++, d=>d.usableRanges[0].startMs=-1,
+    d=>d.coverage.inactiveRanges[0].endMs++, d=>d.coverage.inactiveRanges=[],
+    d=>d.coverage.rangeConvention='closed', d=>delete d.usableRanges,
+    d=>d.frames.at(-1).landmarks=d.frames[0].landmarks]) {
+    const bad = structuredClone(real); mutate(bad);
+    assert.throws(() => validateReference(bad));
+  }
 });
 test('nearest lookup handles exact, between, tie, first and last timestamps', () => {
   const frames = [0, 100, 200].map(timeMs => ({ timeMs }));
