@@ -1,5 +1,5 @@
 import { SOURCE_VIDEO, REFERENCE_JSON, validateReference, matchingTolerance,
-  nearestSample, missingRanges, CONNECTIONS } from './visualizer-data.mjs';
+  nearestSample, missingRanges, usableSummary, CONNECTIONS } from './visualizer-data.mjs';
 
 const $ = id => document.getElementById(id);
 const video = $('video'), canvas = $('overlay'), context = canvas.getContext('2d');
@@ -101,11 +101,17 @@ async function start() {
   const ranges = missingRanges(data.frames);
   const missing = ranges.reduce((sum, range) => sum + range.count, 0);
   const detected = data.frames.length - missing;
+  const usable = usableSummary(data);
   table('summary', [['Total samples', data.frames.length], ['Detected', detected], ['Missing', missing],
     ['Detected percentage', `${(100 * detected / data.frames.length).toFixed(2)}%`],
     ['Target rate', `${data.sampling.targetFps} FPS`], ['Match tolerance', `±${tolerance.toFixed(1)} ms`],
     ['Source', data.sourceVideo], ['Reference', REFERENCE_JSON],
-    ['Subject tracking', data.subjectTracking?.strategy || 'Not specified'],
+    ['Reference selection', data.subjectTracking?.strategy || 'Not specified'],
+    ['Usable samples / selected / missing', `${usable.total} / ${usable.selected} / ${usable.missing}`],
+    ['Selected inside usable coverage', usable.percent === null ? '—' : `${usable.percent.toFixed(2)}%`],
+    ['Exercise missing ranges', usable.ranges.length],
+    ['Longest exercise missing sampled span', usable.longest ?
+      `${seconds(usable.longest.startMs)}–${seconds(usable.longest.endMs)} (${seconds(usable.longest.endMs - usable.longest.startMs)})` : 'None'],
     ['Usable coverage (not pose validity)', data.usableRanges ? data.usableRanges.map(r =>
       `${seconds(r.startMs)}–${seconds(r.endMs)} (end exclusive)`).join('; ') || 'None' : 'Not specified']]);
   $('sample-input').max = data.frames.length - 1;

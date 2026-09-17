@@ -9,7 +9,7 @@ import urllib.request
 from collections import Counter
 
 from validate_reference_pose import validate
-from subject_tracking import SubjectTracker, SETTINGS, BLACK_SETTINGS, is_near_black, coverage
+from subject_tracking import select_sequence, SETTINGS, BLACK_SETTINGS, is_near_black, coverage
 
 MODEL_URL = 'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_full/float16/1/pose_landmarker_full.task'
 MODEL_SHA256 = '5134a3aad27a58b93da0088d431f366da362b44e3ccfbe3462b3827a839011b1'
@@ -59,8 +59,7 @@ def extract(source, output, fps, model, debug=None):
             min_pose_detection_confidence=0.5, min_pose_presence_confidence=0.5,
             min_tracking_confidence=0.5, output_segmentation_masks=False)
         frames, count, width, height = [], 0, None, None
-        tracker, black, reasons = SubjectTracker(), [], Counter()
-        diagnostics = [] if debug else None
+        samples, black = [], []
         with mp.tasks.vision.PoseLandmarker.create_from_options(options) as landmarker:
             while True:
                 ok, bgr = capture.read()
@@ -76,7 +75,7 @@ def extract(source, output, fps, model, debug=None):
                 if width is not None and (current_width, current_height) != (width, height):
                     raise ValueError('Video dimensions changed')
                 width, height = current_width, current_height
-                if timestamp + 1e-6 < len(frames) * 1000 / fps:
+                if timestamp + 1e-6 < len(samples) * 1000 / fps:
                     continue
                 result = landmarker.detect_for_video(
                     mp.Image(image_format=mp.ImageFormat.SRGB,
@@ -86,17 +85,14 @@ def extract(source, output, fps, model, debug=None):
                 gray = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)
                 dark = is_near_black(float(gray.mean()), float((gray > BLACK_SETTINGS['brightLuma']).mean()))
                 black.append(dark)
-                pose = tracker.select([] if dark else candidates, round(timestamp))
-                reasons['near-black' if dark else tracker.reason] += 1
-                if diagnostics is not None:
-                    diagnostics.append(dict(timeMs=round(timestamp), nearBlack=dark,
-                                            reason=tracker.reason, candidates=candidates))
-                frames.append({'timeMs': round(timestamp), 'landmarks': pose})
-                if len(frames) % 100 == 0:
-                    print(f'Processed {len(frames)} samples ({timestamp / 1000:.1f}s)', flush=True)
+                samples.append(dict(timeMs=round(timestamp), nearBlack=dark, candidates=candidates))
+                if len(samples) % 100 == 0:
+                    print(f'Processed {len(samples)} samples ({timestamp / 1000:.1f}s)', flush=True)
         if count == 0 or (expected_count > 0 and count != expected_count):
             raise ValueError(f'Incomplete decode: {count} frames, expected {expected_count}')
         duration = count * 1000 / source_fps
+        frames, selection_reasons = select_sequence(samples, width / height)
+        reasons = Counter(selection_reasons)
         usable, inactive = coverage([frame['timeMs'] for frame in frames], black, duration)
         data = {'formatVersion': 1, 'sourceVideo': source.as_posix(),
                 'subjectTracking': SETTINGS,
@@ -128,6 +124,7 @@ def extract(source, output, fps, model, debug=None):
         print(json.dumps(summary, indent=2))
         if debug:
             debug.parent.mkdir(parents=True, exist_ok=True)
+            diagnostics = [{**sample, 'reason': reason} for sample, reason in zip(samples, selection_reasons)]
             debug.write_text(json.dumps(diagnostics, allow_nan=False), encoding='utf-8')
     finally:
         capture.release()

@@ -84,6 +84,20 @@ export function missingRanges(frames) {
   return ranges;
 }
 
+export function usableSummary(data) {
+  const usable = frame => !data.usableRanges || data.usableRanges.some(range =>
+    range.startMs <= frame.timeMs && frame.timeMs < range.endMs);
+  const frames = data.frames.filter(usable);
+  const missing = frames.filter(frame => frame.landmarks === null).length;
+  // Keep inactive samples as separators, so distinct usable ranges never join.
+  const ranges = missingRanges(data.frames.map(frame => usable(frame) ? frame :
+    { ...frame, landmarks: [] }));
+  const longest = ranges.reduce((best, range) => !best || range.count > best.count ? range : best, null);
+  return { total: frames.length, selected: frames.length - missing, missing,
+    percent: frames.length ? 100 * (frames.length - missing) / frames.length : null,
+    ranges, longest };
+}
+
 // Standard MediaPipe Pose connections, stored locally (no MediaPipe import).
 export const CONNECTIONS = [
   [0,1],[1,2],[2,3],[3,7],[0,4],[4,5],[5,6],[6,8],[9,10],

@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
-import { validateReference, nearestSample, matchingTolerance, missingRanges, CONNECTIONS } from './visualizer-data.mjs';
+import { validateReference, nearestSample, matchingTolerance, missingRanges, usableSummary, CONNECTIONS } from './visualizer-data.mjs';
 
 const real = JSON.parse(fs.readFileSync(new URL('../../assets/games/demo-standing/reference-pose.json', import.meta.url)));
 test('file protocol displays localhost instructions without importing the visualizer', () => {
@@ -19,10 +19,23 @@ test('real dataset validates and missing groups cover exactly all missing poses'
   assert.equal(validateReference(real), real);
   assert.equal(real.frames.length, 732);
   const ranges = missingRanges(real.frames);
-  assert.equal(ranges.reduce((sum, r) => sum + r.count, 0), 291);
-  assert.equal(real.frames.filter(f => f.landmarks !== null).length, 441);
+  assert.equal(ranges.reduce((sum, r) => sum + r.count, 0), 187);
+  assert.equal(real.frames.filter(f => f.landmarks !== null).length, 545);
   assert.equal(CONNECTIONS.length, 35);
   assert.ok(CONNECTIONS.flat().every(i => i >= 0 && i < 33));
+});
+test('usable statistics exclude black tail and keep separate usable ranges apart', () => {
+  const summary = usableSummary(real);
+  assert.equal(summary.total, 577);
+  assert.equal(summary.selected, 545);
+  assert.equal(summary.missing, 32);
+  assert.equal(summary.ranges.length, 14);
+  assert.equal(summary.longest.endMs-summary.longest.startMs, 600);
+  assert.ok(Math.abs(summary.percent - 94.45407) < .001);
+  const segmented = {frames:[0,100,200].map(timeMs => ({timeMs,landmarks:null})),
+    usableRanges:[{startMs:0,endMs:100},{startMs:200,endMs:300}]};
+  assert.equal(usableSummary(segmented).ranges.length, 2);
+  assert.equal(usableSummary({...segmented,usableRanges:[]}).percent, null);
 });
 test('optional coverage validates boundaries, partition and missing inactive samples', () => {
   const legacy = structuredClone(real);
