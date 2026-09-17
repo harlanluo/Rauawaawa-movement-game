@@ -57,7 +57,15 @@ Open `http://localhost:8000/tools/reference-pose/visualizer.html`. HTTP(S) is re
 
 The overlay shares the video's intrinsic aspect ratio and uses raw x/y coordinates and standard MediaPipe connections. Nearest timestamp matching chooses the earlier sample on ties, with tolerance of half the requested interval plus one source frame and 1 ms (84.3 ms here). Larger gaps are not interpolated. Missing-range endpoints are first/last sampled times, not inferred loss boundaries. Low-visibility points are still drawn. The viewer loads the video into browser memory for reliable seeking with Python's basic HTTP server; use inline playback, since native fullscreen may omit the overlay. Metadata checks verify dimensions/duration, not source-byte identity. Reload stale browser modules after local edits.
 
-## Real-video comparison and diagnosis
+## Current lower-resolution source
+
+The current source video is 854 × 480, 1,730 decoded video frames at 30 FPS, and 57.666667 seconds on the decoded video timeline. Its AAC audio/container duration is 57.724807 seconds. The visualizer accepts that small difference within the same 84.3 ms tolerance used to match stored samples.
+
+The current generated dataset has 577 samples: 554 selected and 23 missing. All 577 samples are in usable coverage, so selected usable coverage is 96.01%. There are 10 missing ranges; the longest sampled span is 24.600–25.800 seconds (13 samples, 1.2 seconds). The replacement source has no sustained black tail, so `coverage.inactiveRanges` is empty. At the browser-reported end of the slightly longer audio/container timeline, no stale reference sample is drawn.
+
+## Historical PR #11 comparison and diagnosis
+
+The comparison below records why the continuity algorithm changed while the original 1280 × 720, 73.199667-second source was present. It is historical evidence, not the metadata or current metrics for the lower-resolution replacement video.
 
 Baseline is the first PR #11 commit, `b8d40a5`. Regeneration preserves its source hash, all 732 timestamps, video metadata and coverage. The real extraction took 29.44 seconds excluding imports. Four candidates were requested; detector confidence settings did not change.
 

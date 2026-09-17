@@ -17,21 +17,21 @@ test('file protocol displays localhost instructions without importing the visual
 });
 test('real dataset validates and missing groups cover exactly all missing poses', () => {
   assert.equal(validateReference(real), real);
-  assert.equal(real.frames.length, 732);
+  assert.equal(real.frames.length, 577);
   const ranges = missingRanges(real.frames);
-  assert.equal(ranges.reduce((sum, r) => sum + r.count, 0), 187);
-  assert.equal(real.frames.filter(f => f.landmarks !== null).length, 545);
+  assert.equal(ranges.reduce((sum, r) => sum + r.count, 0), 23);
+  assert.equal(real.frames.filter(f => f.landmarks !== null).length, 554);
   assert.equal(CONNECTIONS.length, 35);
   assert.ok(CONNECTIONS.flat().every(i => i >= 0 && i < 33));
 });
-test('usable statistics exclude black tail and keep separate usable ranges apart', () => {
+test('usable statistics cover the trimmed source and keep separate usable ranges apart', () => {
   const summary = usableSummary(real);
   assert.equal(summary.total, 577);
-  assert.equal(summary.selected, 545);
-  assert.equal(summary.missing, 32);
-  assert.equal(summary.ranges.length, 14);
-  assert.equal(summary.longest.endMs-summary.longest.startMs, 600);
-  assert.ok(Math.abs(summary.percent - 94.45407) < .001);
+  assert.equal(summary.selected, 554);
+  assert.equal(summary.missing, 23);
+  assert.equal(summary.ranges.length, 10);
+  assert.equal(summary.longest.endMs-summary.longest.startMs, 1200);
+  assert.ok(Math.abs(summary.percent - 96.01386) < .001);
   const segmented = {frames:[0,100,200].map(timeMs => ({timeMs,landmarks:null})),
     usableRanges:[{startMs:0,endMs:100},{startMs:200,endMs:300}]};
   assert.equal(usableSummary(segmented).ranges.length, 2);
@@ -41,14 +41,18 @@ test('optional coverage validates boundaries, partition and missing inactive sam
   const legacy = structuredClone(real);
   delete legacy.coverage; delete legacy.usableRanges;
   assert.equal(validateReference(legacy), legacy);
-  assert.deepEqual(real.usableRanges, [{startMs:0, endMs:57733}]);
+  assert.deepEqual(real.usableRanges, [{startMs:0, endMs:real.video.durationMs}]);
+  assert.deepEqual(real.coverage.inactiveRanges, []);
   for (const mutate of [d=>d.usableRanges[0].endMs++, d=>d.usableRanges[0].startMs=-1,
-    d=>d.coverage.inactiveRanges[0].endMs++, d=>d.coverage.inactiveRanges=[],
-    d=>d.coverage.rangeConvention='closed', d=>delete d.usableRanges,
-    d=>d.frames.at(-1).landmarks=d.frames[0].landmarks]) {
+    d=>d.coverage.inactiveRanges=[{startMs:0,endMs:100}],
+    d=>d.coverage.rangeConvention='closed', d=>delete d.usableRanges]) {
     const bad = structuredClone(real); mutate(bad);
     assert.throws(() => validateReference(bad));
   }
+  const poseInInactive = structuredClone(real);
+  poseInInactive.usableRanges = [{startMs:100,endMs:real.video.durationMs}];
+  poseInInactive.coverage.inactiveRanges = [{startMs:0,endMs:100}];
+  assert.throws(() => validateReference(poseInInactive));
 });
 test('nearest lookup handles exact, between, tie, first and last timestamps', () => {
   const frames = [0, 100, 200].map(timeMs => ({ timeMs }));

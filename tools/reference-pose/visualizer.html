@@ -43,7 +43,7 @@
     document.getElementById('status').textContent = 'HTTP(S) required: run python -m http.server 8000 from the repository root, then open http://localhost:8000/tools/reference-pose/visualizer.html';
     document.getElementById('status').className = 'error';
   } else {
-    import('./visualizer.js').catch(error => {
+    import('./visualizer.js?v=2').catch(error => {
       document.getElementById('status').textContent = 'Unable to start visualizer. Check the local server and console.';
       document.getElementById('status').className = 'error';
       console.error(error);

@@ -126,9 +126,13 @@ async function start() {
   }
   video.addEventListener('loadedmetadata', () => {
     if (failed) return;
+    const durationDelta = Math.abs(video.duration * 1000 - data.video.durationMs);
     if (video.videoWidth !== data.video.width || video.videoHeight !== data.video.height ||
-      !Number.isFinite(video.duration) || Math.abs(video.duration * 1000 - data.video.durationMs) > 1000 / data.video.sourceFps + 2) {
-      fail(new Error('Video dimensions/duration do not match reference metadata.')); return;
+      !Number.isFinite(video.duration) || durationDelta > tolerance) {
+      fail(new Error(`Video dimensions/duration do not match reference metadata ` +
+        `(video ${video.videoWidth}×${video.videoHeight}, ${video.duration.toFixed(3)} s; ` +
+        `reference ${data.video.width}×${data.video.height}, ${(data.video.durationMs / 1000).toFixed(3)} s).`));
+      return;
     }
     canvas.width = video.videoWidth; canvas.height = video.videoHeight;
     ready = true; $('controls').disabled = false; render(); playbackFrame();
