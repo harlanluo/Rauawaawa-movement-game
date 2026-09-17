@@ -166,18 +166,17 @@ The current lower-resolution video produces 577 samples: 554 selected and 23 mis
 
 ## 8. Current roadmap
 
-1. Finish review and merge PR #11.
-2. Build a pure, reusable pose-comparison engine.
-3. Normalize reference and player pose geometry.
-4. Compare major joint angles and important body features.
-5. Handle visibility and missing data safely.
-6. Produce forgiving similarity and structured feedback output.
-7. Test comparison independently from the UI and camera.
-8. Integrate the demonstration timeline, stored reference, and live player pose.
-9. Replace the fixed prototype score with movement-based scoring.
-10. Improve the avatar toward continuous articulated movement.
-11. Build the Staff video-processing and publishing workflow.
-12. Complete accessibility, performance, browser, device, and usability testing and polish.
+1. Build a pure, reusable pose-comparison engine.
+2. Normalize reference and player pose geometry.
+3. Compare major joint angles and important body features.
+4. Handle visibility and missing data safely.
+5. Produce forgiving similarity and structured feedback output.
+6. Test comparison independently from the UI and camera.
+7. Integrate the demonstration timeline, stored reference, and live player pose.
+8. Replace the fixed prototype score with movement-based scoring.
+9. Improve the avatar toward continuous articulated movement.
+10. Build the Staff video-processing and publishing workflow.
+11. Complete accessibility, performance, browser, device, and usability testing and polish.
 
 These tasks can be split across team members. Some tracks can proceed in parallel when file ownership is clear and conflicts in core files such as `js/app.js` are coordinated.
 
@@ -355,7 +354,7 @@ Minor typo and style-only changes do not require a handoff update.
 
 ## 17. Immediate next major task
 
-After PR #11 is merged, the immediate next major task is the **pose comparison / scoring engine**.
+With PR #11 merged, the immediate next major task is the **pose comparison / scoring engine**.
 
 Input:
 
