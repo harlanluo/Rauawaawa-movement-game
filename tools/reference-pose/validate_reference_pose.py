@@ -32,6 +32,25 @@ def validate(data):
     video, sampling, frames = data['video'], data['sampling'], data['frames']
     for key in ('durationMs', 'width', 'height', 'sourceFps', 'decodedFrames'):
         require(number(video[key]) and video[key] > 0, f'Invalid video {key}')
+    if 'usableRanges' in data or 'coverage' in data:
+        require(isinstance(data.get('coverage'), dict), 'Missing coverage metadata')
+        require(data['coverage'].get('rangeConvention') == 'start-inclusive-end-exclusive', 'Invalid range convention')
+        ranges = []
+        for spans in (data.get('usableRanges'), data['coverage'].get('inactiveRanges')):
+            require(isinstance(spans, list), 'Invalid coverage ranges')
+            previous_end = -1
+            for span in spans:
+                require(isinstance(span, dict), 'Invalid coverage range')
+                start, end = span.get('startMs'), span.get('endMs')
+                require(number(start) and number(end) and 0 <= start < end <= video['durationMs']
+                        and start >= previous_end, 'Invalid coverage range')
+                previous_end = end
+                ranges.append((start, end))
+        cursor = 0
+        for start, end in sorted(ranges):
+            require(start == cursor, 'Coverage must partition the source timeline')
+            cursor = end
+        require(cursor == video['durationMs'], 'Incomplete coverage metadata')
     fps = sampling['targetFps']
     require(number(fps) and 0 < fps <= min(1000, video['sourceFps']), 'Invalid targetFps')
     require(isinstance(frames, list) and len(frames) > 0, 'No samples')
@@ -44,6 +63,9 @@ def validate(data):
         previous = timestamp
         require('landmarks' in frame, 'Missing explicit landmarks field')
         pose = frame['landmarks']
+        if 'coverage' in data:
+            require(pose is None or not any(r['startMs'] <= timestamp < r['endMs']
+                    for r in data['coverage']['inactiveRanges']), 'Pose in inactive range')
         if pose is None:
             continue
         require(isinstance(pose, list) and len(pose) == 33, 'Expected 33 landmarks')

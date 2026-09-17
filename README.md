@@ -26,6 +26,8 @@ This University of Waikato student project is an evolving prototype for a camera
 - `assets/images/` — project image assets
 - `assets/videos/` — exercise and game video assets
 - `camera_pose_demo/` — standalone MediaPipe camera prototype
+- `tools/reference-pose/` — offline reference extraction and developer QA tools
+- `PROJECT_HANDOFF.md` — current technical status and continuation guide
 
 ## Running Locally
 
@@ -39,6 +41,7 @@ Then open:
 
 - Main prototype: `http://localhost:8000/`
 - Camera prototype: `http://localhost:8000/camera_pose_demo/camera_pose_test.html`
+- Reference pose visualizer: `http://localhost:8000/tools/reference-pose/visualizer.html`
 
 Use the Camera button below the avatar to turn tracking on, then allow camera permission. Use localhost or HTTPS. Internet access is required for the public CDN library, runtime, and model.
 
@@ -47,6 +50,16 @@ Opening `index.html` directly with `file://` is unsupported because browser modu
 ## Reference pose preprocessing
 
 Use the separate [Python extraction tool](tools/reference-pose/README.md) to generate reference landmarks ahead of gameplay. One dataset in `assets/games/demo-standing/reference-pose.json` references the existing shared video. The tool defaults to Full float16 at 10 samples per second; it does not run in the game or implement scoring.
+
+## Reference pose visualizer
+
+The [reference pose visualizer](https://team-koru.netlify.app/tools/reference-pose/visualizer.html) is a developer and QA tool. It displays the pre-generated reference landmarks over the source video and does not run MediaPipe inference itself. Run it locally at `http://localhost:8000/tools/reference-pose/visualizer.html`.
+
+## Project status
+
+For current implementation status, completed features, known limitations, unfinished work, architecture, and planned next steps, see [PROJECT_HANDOFF.md](PROJECT_HANDOFF.md).
+
+`PROJECT_HANDOFF.md` should be updated whenever a major feature or PR is completed, before or together with merging that feature, so team members and AI tools have current project context.
 
 ## Player tracking
 

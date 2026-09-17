@@ -1,5 +1,5 @@
 import { SOURCE_VIDEO, REFERENCE_JSON, validateReference, matchingTolerance,
-  nearestSample, missingRanges, CONNECTIONS } from './visualizer-data.mjs';
+  nearestSample, missingRanges, usableSummary, CONNECTIONS } from './visualizer-data.mjs';
 
 const $ = id => document.getElementById(id);
 const video = $('video'), canvas = $('overlay'), context = canvas.getContext('2d');
@@ -49,7 +49,8 @@ function render() {
     }
   }
   const state = video.seeking ? 'Seeking video…' : !match ? 'No matching reference sample available' :
-    match.frame.landmarks === null ? 'Pose missing at this sample' : 'Pose detected';
+    data.coverage?.inactiveRanges.some(r => r.startMs <= timeMs && timeMs < r.endMs) ?
+      'Inactive: sustained near-black section' : match.frame.landmarks === null ? 'Pose missing at this sample' : 'Pose detected';
   $('status').textContent = state;
   $('status').className = !match || match.frame.landmarks === null ? 'missing' : '';
   table('current', [['Video time', seconds(timeMs)], ['Reference time', match ? seconds(match.frame.timeMs) : '—'],
@@ -100,10 +101,19 @@ async function start() {
   const ranges = missingRanges(data.frames);
   const missing = ranges.reduce((sum, range) => sum + range.count, 0);
   const detected = data.frames.length - missing;
+  const usable = usableSummary(data);
   table('summary', [['Total samples', data.frames.length], ['Detected', detected], ['Missing', missing],
     ['Detected percentage', `${(100 * detected / data.frames.length).toFixed(2)}%`],
     ['Target rate', `${data.sampling.targetFps} FPS`], ['Match tolerance', `±${tolerance.toFixed(1)} ms`],
-    ['Source', data.sourceVideo], ['Reference', REFERENCE_JSON]]);
+    ['Source', data.sourceVideo], ['Reference', REFERENCE_JSON],
+    ['Reference selection', data.subjectTracking?.strategy || 'Not specified'],
+    ['Usable samples / selected / missing', `${usable.total} / ${usable.selected} / ${usable.missing}`],
+    ['Selected inside usable coverage', usable.percent === null ? '—' : `${usable.percent.toFixed(2)}%`],
+    ['Exercise missing ranges', usable.ranges.length],
+    ['Longest exercise missing sampled span', usable.longest ?
+      `${seconds(usable.longest.startMs)}–${seconds(usable.longest.endMs)} (${seconds(usable.longest.endMs - usable.longest.startMs)})` : 'None'],
+    ['Usable coverage (not pose validity)', data.usableRanges ? data.usableRanges.map(r =>
+      `${seconds(r.startMs)}–${seconds(r.endMs)} (end exclusive)`).join('; ') || 'None' : 'Not specified']]);
   $('sample-input').max = data.frames.length - 1;
   $('next-missing').disabled = missing === 0;
   const longest = ranges.reduce((best, range) => !best || range.endMs - range.startMs > best.endMs - best.startMs ? range : best, null);
@@ -116,9 +126,13 @@ async function start() {
   }
   video.addEventListener('loadedmetadata', () => {
     if (failed) return;
+    const durationDelta = Math.abs(video.duration * 1000 - data.video.durationMs);
     if (video.videoWidth !== data.video.width || video.videoHeight !== data.video.height ||
-      !Number.isFinite(video.duration) || Math.abs(video.duration * 1000 - data.video.durationMs) > 1000 / data.video.sourceFps + 2) {
-      fail(new Error('Video dimensions/duration do not match reference metadata.')); return;
+      !Number.isFinite(video.duration) || durationDelta > tolerance) {
+      fail(new Error(`Video dimensions/duration do not match reference metadata ` +
+        `(video ${video.videoWidth}×${video.videoHeight}, ${video.duration.toFixed(3)} s; ` +
+        `reference ${data.video.width}×${data.video.height}, ${(data.video.durationMs / 1000).toFixed(3)} s).`));
+      return;
     }
     canvas.width = video.videoWidth; canvas.height = video.videoHeight;
     ready = true; $('controls').disabled = false; render(); playbackFrame();
