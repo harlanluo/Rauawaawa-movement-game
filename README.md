@@ -6,6 +6,10 @@
 
 [Open Movement Game Prototype](https://team-koru.netlify.app/)
 
+### 🦴 Reference Pose Visualizer
+
+[Open Reference Pose Visualizer](https://team-koru.netlify.app/tools/reference-pose/visualizer.html)
+
 ### 📷 Camera Pose Tracking Demo
 
 [Open Camera Pose Tracking Demo](https://team-koru.netlify.app/camera_pose_demo/camera_pose_test.html)
