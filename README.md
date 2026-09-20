@@ -27,6 +27,7 @@ This University of Waikato student project is an evolving prototype for a camera
 - `js/app.js` — main application behaviour
 - `js/pose-tracker.js` — reusable live player-camera tracker
 - `js/avatar-pose-controller.js` — stable, simplified avatar pose feedback
+- `js/pose-comparison.js` — pure reference/player pose comparison helpers for future scoring
 - `assets/images/` — project image assets
 - `assets/videos/` — exercise and game video assets
 - `camera_pose_demo/` — standalone MediaPipe camera prototype
@@ -59,6 +60,12 @@ Use the separate [Python extraction tool](tools/reference-pose/README.md) to gen
 
 The [reference pose visualizer](https://team-koru.netlify.app/tools/reference-pose/visualizer.html) is a developer and QA tool. It displays the pre-generated reference landmarks over the source video and does not run MediaPipe inference itself. Run it locally at `http://localhost:8000/tools/reference-pose/visualizer.html`.
 
+## Pose comparison
+
+`js/pose-comparison.js` provides a reusable pure comparison module for future scoring integration. It normalizes reference and player landmarks around the hips/torso, compares major arm, leg, hand, foot, and torso features, skips low-visibility features, and returns a structured result with `similarity`, `rating`, and sorted feedback. Missing reference samples are skipped, and insufficient player-camera information is reported separately from bad movement.
+
+This module is tested independently and is not yet connected to the game timeline, live camera state, or visible score.
+
 ## Project status
 
 For current implementation status, completed features, known limitations, unfinished work, architecture, and planned next steps, see [PROJECT_HANDOFF.md](PROJECT_HANDOFF.md).
@@ -82,7 +89,7 @@ For device tests, inspect `window.playerPoseTracking.getDiagnostics()` and `getL
 Run the controlled lifecycle tests with a recent Node.js version (no npm dependencies):
 
 ```bash
-node --experimental-vm-modules --test --test-isolation=none tests/pose-tracker.test.cjs
+node --experimental-vm-modules --test --test-isolation=none tests/pose-comparison.test.mjs tests/pose-tracker.test.cjs
 ```
 
 These tests use mock camera/model inputs; real webcam permission, detection quality, performance, and the hardware camera indicator still need device testing.

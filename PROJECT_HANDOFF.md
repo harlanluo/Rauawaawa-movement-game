@@ -50,6 +50,7 @@ Architecture rules:
 - `js/app.js` — screen navigation, game/library state, video playback, Staff simulation, Voice Guidance, camera toggle, and tracker integration.
 - `js/pose-tracker.js` — reusable live player-camera lifecycle and MediaPipe Pose Landmarker wrapper.
 - `js/avatar-pose-controller.js` — maps reliable live landmarks to five stable prototype avatar states.
+- `js/pose-comparison.js` — pure reference/player pose normalization and similarity helpers for future scoring integration.
 - `assets/videos/` — local exercise video assets. The current prototype has one real exercise video.
 - `assets/games/demo-standing/reference-pose.json` — pre-generated reference landmarks and source/model/sampling metadata for the current video.
 - `camera_pose_demo/` — older standalone camera pose demonstration, kept separate from the main game.
@@ -123,6 +124,17 @@ The current lower-resolution video produces 577 samples: 554 selected and 23 mis
 - Local: `http://localhost:8000/tools/reference-pose/visualizer.html`
 - Netlify: `https://team-koru.netlify.app/tools/reference-pose/visualizer.html`
 
+### Pose comparison module
+
+- `js/pose-comparison.js` is a pure JavaScript module and is not connected to the UI yet.
+- It accepts reference MediaPipe landmarks and player MediaPipe landmarks.
+- It normalizes poses around the hip center using torso/body scale so camera framing and body size differences matter less.
+- It compares major arm, leg, hand, foot, shoulder-line, and torso-lean features.
+- It skips low-visibility or missing features instead of treating them as bad movement.
+- Missing reference samples return `rating: "skipped"` so stored reference gaps do not penalize the player.
+- Insufficient player-camera information returns `rating: "insufficient"` separately from `good`, `almost`, or `miss`.
+- It returns structured feedback sorted from weakest to strongest feature for later Good / Almost / Miss and score integration.
+
 ## 5. Current content situation
 
 - There is currently only one real exercise video.
@@ -134,7 +146,7 @@ The current lower-resolution video produces 577 samples: 554 selected and 23 mis
 ## 6. Current limitations
 
 - Gameplay score is fixed at 180.
-- Player/reference pose comparison and movement-based scoring are not implemented.
+- A pure player/reference pose comparison module exists, but it is not yet integrated with the game timeline, camera state, feedback UI, or score accumulation.
 - The avatar is a basic five-state prototype.
 - Staff authentication, upload, recording, processing, and publishing are simulated or incomplete and disappear on refresh.
 - There is no production backend, database, user account system, or durable content store.
@@ -149,9 +161,8 @@ The current lower-resolution video produces 577 samples: 554 selected and 23 mis
 
 ## 7. NOT IMPLEMENTED YET
 
-- Pose comparison engine.
-- Body-relative pose similarity.
-- Good / Almost / Miss feedback.
+- Representative threshold tuning for body-relative pose similarity.
+- Good / Almost / Miss gameplay feedback.
 - Temporal scoring tolerance.
 - Real score accumulation.
 - Replacement of the fixed score.
@@ -166,17 +177,14 @@ The current lower-resolution video produces 577 samples: 554 selected and 23 mis
 
 ## 8. Current roadmap
 
-1. Build a pure, reusable pose-comparison engine.
-2. Normalize reference and player pose geometry.
-3. Compare major joint angles and important body features.
-4. Handle visibility and missing data safely.
-5. Produce forgiving similarity and structured feedback output.
-6. Test comparison independently from the UI and camera.
-7. Integrate the demonstration timeline, stored reference, and live player pose.
-8. Replace the fixed prototype score with movement-based scoring.
-9. Improve the avatar toward continuous articulated movement.
-10. Build the Staff video-processing and publishing workflow.
-11. Complete accessibility, performance, browser, device, and usability testing and polish.
+1. Review and tune the pure pose-comparison thresholds with representative reference/player fixtures.
+2. Integrate the demonstration timeline, stored reference, and live player pose.
+3. Add temporal tolerance so feedback does not require one exact frame match.
+4. Convert comparison output into forgiving Good / Almost / Miss gameplay feedback.
+5. Replace the fixed prototype score with movement-based score accumulation.
+6. Improve the avatar toward continuous articulated movement.
+7. Build the Staff video-processing and publishing workflow.
+8. Complete accessibility, performance, browser, device, and usability testing and polish.
 
 These tasks can be split across team members. Some tracks can proceed in parallel when file ownership is clear and conflicts in core files such as `js/app.js` are coordinated.
 
@@ -289,10 +297,10 @@ This is a suggested split, not a fixed assignment.
 
 ### Track A — Pose comparison / scoring
 
-- Body-relative normalization.
-- Joint-angle and important-geometry comparison.
-- Visibility and missing-data handling.
-- Pure-module unit tests and reference/player fixtures.
+- Tune the pure comparison thresholds with more representative fixtures.
+- Add temporal tolerance around the current demonstration video time.
+- Connect stored reference samples and live player landmarks to gameplay feedback.
+- Replace the fixed score with movement-based score accumulation.
 
 ### Track B — Avatar
 
@@ -354,19 +362,22 @@ Minor typo and style-only changes do not require a handoff update.
 
 ## 17. Immediate next major task
 
-With PR #11 merged, the immediate next major task is the **pose comparison / scoring engine**.
+With the first pure pose-comparison module in place, the immediate next major task is **gameplay scoring integration**.
 
-Input:
+Inputs:
 
-- Reference MediaPipe landmarks.
-- Player MediaPipe landmarks.
+- Current demonstration video time.
+- Stored reference-pose samples.
+- Latest live player landmarks from `js/pose-tracker.js`.
+- Pure comparison output from `js/pose-comparison.js`.
 
 Output:
 
-- Normalized pose similarity.
-- Structured, visibility-aware feedback suitable for later Good / Almost / Miss and scoring decisions.
+- Forgiving Good / Almost / Miss gameplay feedback.
+- Real score accumulation replacing the fixed score of 180.
+- Safe handling for reference gaps, camera-off state, and insufficient player visibility.
 
-Develop this first as a reusable pure comparison module with focused tests. Do not begin with gameplay integration. After the comparison behavior is understood and tested independently, connect it to the demonstration timeline, stored reference data, and live player landmarks.
+Do this after reviewing the pure comparison thresholds with more representative fixtures. Keep offline demonstration preprocessing separate from live player tracking, and do not analyse the demonstration video live during gameplay.
 
 ## 18. Project continuation note
 
