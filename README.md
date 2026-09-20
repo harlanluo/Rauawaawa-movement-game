@@ -69,6 +69,8 @@ The [reference pose visualizer](https://team-koru.netlify.app/tools/reference-po
 
 The selected play mode changes the body requirements. Seated mode normalizes around the shoulders and scores upper-body joints without requiring hips or legs in frame. Standing mode uses shoulder and hip anchors and includes lower-body features when reliable.
 
+To inspect the comparison algorithm, open `http://localhost:8000/tools/pose-comparison/visualizer.html`. It plays the stored reference timeline beside either a controllable simulated pose or live local camera tracking, exposes seated/standing behavior, and shows the overall and per-feature similarity results returned by the gameplay engine.
+
 ## Project status
 
 For current implementation status, completed features, known limitations, unfinished work, architecture, and planned next steps, see [PROJECT_HANDOFF.md](PROJECT_HANDOFF.md).

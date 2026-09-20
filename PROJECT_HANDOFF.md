@@ -140,6 +140,7 @@ The current lower-resolution video produces 577 samples: 554 selected and 23 mis
 - The UI reports Good, Almost, Keep moving, insufficient visibility, and temporary reference-gap states below the avatar.
 - Camera-off time, missing reference windows, and insufficient player visibility do not add score samples.
 - Reference JSON is loaded once and cached in the browser; the demonstration video is still not analysed live.
+- `tools/pose-comparison/visualizer.html` demonstrates the gameplay comparison engine with the stored reference timeline and either a controllable simulated pose or the same live local camera tracker used by the game. It shows framing normalization, body-mode requirements, overall similarity, and per-feature scores.
 
 ## 5. Current content situation
 
