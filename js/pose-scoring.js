@@ -2,7 +2,8 @@ import { comparePoses } from './pose-comparison.js';
 
 const DEFAULT_OPTIONS = {
     toleranceMs: 300,
-    scoreIntervalMs: 500
+    scoreIntervalMs: 500,
+    pointsPerInterval: 10
 };
 
 function validTime(value) {
@@ -48,6 +49,9 @@ export function createPoseScoringSession(referenceData, options = {}) {
     if (!Number.isFinite(settings.scoreIntervalMs) || settings.scoreIntervalMs <= 0) {
         throw new TypeError('scoreIntervalMs must be greater than zero.');
     }
+    if (!Number.isFinite(settings.pointsPerInterval) || settings.pointsPerInterval <= 0) {
+        throw new TypeError('pointsPerInterval must be greater than zero.');
+    }
 
     const compare = settings.comparePoses || comparePoses;
     const scoresByBucket = new Map();
@@ -59,7 +63,7 @@ export function createPoseScoringSession(referenceData, options = {}) {
             ? scores.reduce((total, value) => total + value, 0) / scores.length
             : null;
         return {
-            score: similarity === null ? 0 : Math.round(similarity * 100),
+            score: Math.round(scores.reduce((total, value) => total + value, 0) * settings.pointsPerInterval),
             averageSimilarity: similarity,
             sampleCount: scores.length
         };

@@ -134,7 +134,7 @@ The current lower-resolution video produces 577 samples: 554 selected and 23 mis
 - It returns structured feedback sorted from weakest to strongest feature for gameplay feedback and scoring.
 - `js/pose-scoring.js` selects stored reference frames within 300 ms of the current demonstration time and uses the best valid comparison in that window.
 - Scoring is divided into 500 ms video-time segments. Repeated inference in a segment keeps its best valid similarity, so inference rate and brief jitter do not multiply or immediately reduce the score.
-- The visible 0-100 score is the average of valid scored segments.
+- Each valid segment adds up to 10 points to the visible score, so earned points never decrease. The average similarity remains available in the session summary for diagnostics.
 - Seated mode uses shoulder-centered normalization and upper-body features; hips and legs are not required.
 - Standing mode requires shoulder and hip anchors and includes reliable lower-body features.
 - The UI reports Good, Almost, Keep moving, insufficient visibility, and temporary reference-gap states below the avatar.
