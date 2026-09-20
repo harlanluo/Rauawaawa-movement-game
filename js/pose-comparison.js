@@ -2,7 +2,8 @@ const DEFAULT_OPTIONS = {
     visibilityThreshold: 0.5,
     minComparedWeight: 1.8,
     goodThreshold: 0.82,
-    almostThreshold: 0.62
+    almostThreshold: 0.62,
+    bodyMode: 'standing'
 };
 
 const JOINTS = {
@@ -121,30 +122,39 @@ export function normalizePose(landmarks, options = {}) {
     const rightHip = points[JOINTS.rightHip];
     const leftShoulder = points[JOINTS.leftShoulder];
     const rightShoulder = points[JOINTS.rightShoulder];
-    if (![leftHip, rightHip, leftShoulder, rightShoulder].every(point => visible(point, settings.visibilityThreshold))) {
-        return null;
-    }
+    if (![leftShoulder, rightShoulder].every(point => visible(point, settings.visibilityThreshold))) return null;
+    const upperBodyOnly = settings.bodyMode === 'seated';
+    const hipsVisible = [leftHip, rightHip].every(point => visible(point, settings.visibilityThreshold));
+    if (!upperBodyOnly && !hipsVisible) return null;
 
-    const midHip = average(leftHip, rightHip);
+    const midHip = hipsVisible ? average(leftHip, rightHip) : null;
     const midShoulder = average(leftShoulder, rightShoulder);
-    const torso = distance(midHip, midShoulder);
     const shoulderWidth = distance(leftShoulder, rightShoulder);
-    const hipWidth = distance(leftHip, rightHip);
-    const scale = Math.max(torso, shoulderWidth, hipWidth, 0.0001);
+    const torso = midHip ? distance(midHip, midShoulder) : 0;
+    const hipWidth = hipsVisible ? distance(leftHip, rightHip) : 0;
+    const scale = upperBodyOnly
+        ? Math.max(shoulderWidth, 0.0001)
+        : Math.max(torso, shoulderWidth, hipWidth, 0.0001);
+    const origin = upperBodyOnly ? midShoulder : midHip;
     const normalizedPoints = points.map(point => point ? {
-        x: (point.x - midHip.x) / scale,
-        y: (point.y - midHip.y) / scale,
-        z: ((point.z || 0) - (midHip.z || 0)) / scale,
+        x: (point.x - origin.x) / scale,
+        y: (point.y - origin.y) / scale,
+        z: ((point.z || 0) - (origin.z || 0)) / scale,
         visibility: point.visibility
     } : null);
 
     return {
         points: normalizedPoints,
-        midHip: { x: 0, y: 0, z: 0, visibility: midHip.visibility },
+        midHip: midHip ? {
+            x: (midHip.x - origin.x) / scale,
+            y: (midHip.y - origin.y) / scale,
+            z: ((midHip.z || 0) - (origin.z || 0)) / scale,
+            visibility: midHip.visibility
+        } : null,
         midShoulder: {
-            x: (midShoulder.x - midHip.x) / scale,
-            y: (midShoulder.y - midHip.y) / scale,
-            z: ((midShoulder.z || 0) - (midHip.z || 0)) / scale,
+            x: (midShoulder.x - origin.x) / scale,
+            y: (midShoulder.y - origin.y) / scale,
+            z: ((midShoulder.z || 0) - (origin.z || 0)) / scale,
             visibility: midShoulder.visibility
         },
         scale
@@ -198,6 +208,7 @@ export function comparePoses(referenceLandmarks, playerLandmarks, options = {}) 
     }
 
     for (const feature of ANGLE_FEATURES) {
+        if (settings.bodyMode === 'seated' && feature.id.includes('Knee')) continue;
         const [aName, bName, cName] = feature.joints;
         const referencePoints = [getNamed(reference, aName), getNamed(reference, bName), getNamed(reference, cName)];
         const playerPoints = [getNamed(player, aName), getNamed(player, bName), getNamed(player, cName)];
@@ -213,6 +224,7 @@ export function comparePoses(referenceLandmarks, playerLandmarks, options = {}) 
     }
 
     for (const feature of POSITION_FEATURES) {
+        if (settings.bodyMode === 'seated' && feature.id.includes('Ankle')) continue;
         const referencePoint = getNamed(reference, feature.joint);
         const playerPoint = getNamed(player, feature.joint);
         if (!visible(referencePoint, settings.visibilityThreshold) || !visible(playerPoint, settings.visibilityThreshold)) continue;
@@ -222,6 +234,7 @@ export function comparePoses(referenceLandmarks, playerLandmarks, options = {}) 
     }
 
     for (const feature of ORIENTATION_FEATURES) {
+        if (settings.bodyMode === 'seated' && feature.id === 'torsoLean') continue;
         const referenceFrom = getNamed(reference, feature.from);
         const referenceTo = getNamed(reference, feature.to);
         const playerFrom = getNamed(player, feature.from);

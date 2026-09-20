@@ -21,11 +21,15 @@ function createAvatarPoseController(avatar) {
         ['rightThigh', 'rightHip', 'rightKnee'],
         ['rightShin', 'rightKnee', 'rightAnkle']
     ];
+    const lowerBodyNames = new Set([
+        'leftHip', 'rightHip', 'leftKnee', 'rightKnee', 'leftAnkle', 'rightAnkle'
+    ]);
     const elements = {};
     const defaults = new Map();
     let candidate = 'neutral';
     let candidateSince = null;
     let smoothed = {};
+    let bodyMode = 'standing';
 
     for (const [id] of segmentNames) elements[id] = avatar.querySelector?.(`#${id}`) || null;
     for (const name of Object.keys(jointIndexes)) elements[`${name}Joint`] = avatar.querySelector?.(`#${name}Joint`) || null;
@@ -65,6 +69,11 @@ function createAvatarPoseController(avatar) {
         restoreDefaults();
     }
 
+    function setMode(mode) {
+        bodyMode = String(mode).toLowerCase() === 'seated' ? 'seated' : 'standing';
+        reset();
+    }
+
     function updatePoseLabel(points, timestamp) {
         const leftShoulder = points.leftShoulder;
         const rightShoulder = points.rightShoulder;
@@ -93,33 +102,45 @@ function createAvatarPoseController(avatar) {
     function update(landmarks, timestamp) {
         const raw = {};
         for (const [name, index] of Object.entries(jointIndexes)) raw[name] = landmarks?.[index];
-        const coreNames = ['leftShoulder', 'rightShoulder', 'leftHip', 'rightHip'];
-        if (!coreNames.every(name => reliable(raw[name]))) {
+        if (!['leftShoulder', 'rightShoulder'].every(name => reliable(raw[name]))) {
             reset();
             return;
         }
 
-        const midHip = {
-            x: (raw.leftHip.x + raw.rightHip.x) / 2,
-            y: (raw.leftHip.y + raw.rightHip.y) / 2
-        };
         const midShoulder = {
             x: (raw.leftShoulder.x + raw.rightShoulder.x) / 2,
             y: (raw.leftShoulder.y + raw.rightShoulder.y) / 2
         };
-        const torsoLength = Math.hypot(midShoulder.x - midHip.x, midShoulder.y - midHip.y);
         const shoulderWidth = Math.hypot(
             raw.leftShoulder.x - raw.rightShoulder.x,
             raw.leftShoulder.y - raw.rightShoulder.y
         );
-        const scale = 88 / Math.max(torsoLength, shoulderWidth, 0.08);
+        const hasHips = ['leftHip', 'rightHip'].every(name => reliable(raw[name]));
+        if (bodyMode === 'standing' && !hasHips) {
+            reset();
+            return;
+        }
+        const useFullBody = bodyMode === 'standing' && hasHips;
+        const midHip = useFullBody ? {
+            x: (raw.leftHip.x + raw.rightHip.x) / 2,
+            y: (raw.leftHip.y + raw.rightHip.y) / 2
+        } : null;
+        const torsoLength = useFullBody
+            ? Math.hypot(midShoulder.x - midHip.x, midShoulder.y - midHip.y)
+            : 0;
+        const origin = useFullBody ? midHip : midShoulder;
+        const originY = useFullBody ? 184 : 96;
+        const scale = useFullBody
+            ? 88 / Math.max(torsoLength, shoulderWidth, 0.08)
+            : 56 / Math.max(shoulderWidth, 0.08);
         const mapped = {};
 
         for (const [name, point] of Object.entries(raw)) {
             if (!reliable(point)) continue;
+            if (!useFullBody && lowerBodyNames.has(name)) continue;
             const target = {
-                x: 100 - (point.x - midHip.x) * scale,
-                y: 184 + (point.y - midHip.y) * scale
+                x: 100 - (point.x - origin.x) * scale,
+                y: originY + (point.y - origin.y) * scale
             };
             const previous = smoothed[name];
             mapped[name] = previous ? {
@@ -150,6 +171,15 @@ function createAvatarPoseController(avatar) {
                 points: torsoPoints.map(point => `${point.x},${point.y}`).join(' '),
                 opacity: 1
             });
+        } else {
+            const leftShoulder = mapped.leftShoulder;
+            const rightShoulder = mapped.rightShoulder;
+            const bottomY = (leftShoulder.y + rightShoulder.y) / 2 + 82;
+            setAttributes(elements.torso, {
+                points: `${leftShoulder.x},${leftShoulder.y} ${rightShoulder.x},${rightShoulder.y} ` +
+                    `${rightShoulder.x - 10},${bottomY} ${leftShoulder.x + 10},${bottomY}`,
+                opacity: 0.55
+            });
         }
         const headCenter = mapped.nose || {
             x: (mapped.leftShoulder.x + mapped.rightShoulder.x) / 2,
@@ -167,5 +197,5 @@ function createAvatarPoseController(avatar) {
     }
 
     reset();
-    return { update, reset };
+    return { update, reset, setMode, getMode: () => bodyMode };
 }

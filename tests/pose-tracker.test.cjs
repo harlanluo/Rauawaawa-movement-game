@@ -492,4 +492,19 @@ test('avatar continuously maps shoulders, elbows, wrists, hips, knees and ankles
     assert.equal(number('leftForearm', 'opacity'), 0.18);
     controller.reset();
     assert.equal(number('leftForearm', 'opacity'), 1, 'reset should restore a previously obscured segment');
+
+    const upperBodyOnly = landmarks.map(point => ({ ...point }));
+    for (const index of [23, 24, 25, 26, 27, 28]) upperBodyOnly[index].visibility = 0.1;
+    upperBodyOnly[15] = { x: 0.78, y: 0.22, visibility: 1 };
+    controller.setMode('seated');
+    controller.update(upperBodyOnly, 300);
+    assert.equal(number('leftForearm', 'opacity'), 1, 'arms should keep moving without visible hips');
+    assert.ok(Number.isFinite(number('leftWristJoint', 'cy')));
+    assert.equal(number('avatarTorso', 'opacity'), 0.55);
+    assert.equal(number('leftThigh', 'opacity'), 0.18);
+
+    controller.setMode('standing');
+    controller.update(upperBodyOnly, 400);
+    assert.equal(avatar.dataset.pose, 'neutral');
+    assert.equal(number('leftForearm', 'opacity'), 1, 'standing reset should restore the neutral figure');
 });

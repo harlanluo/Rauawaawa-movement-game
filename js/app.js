@@ -123,7 +123,9 @@
                     loadReferencePose(game.referencePoseSrc)
                 ]);
                 if (token !== scoringLoadToken || !isGameRunning) return;
-                scoringSession = module.createPoseScoringSession(referenceData);
+                scoringSession = module.createPoseScoringSession(referenceData, {
+                    comparisonOptions: { bodyMode: currentMode.toLowerCase() }
+                });
                 updateMovementFeedback(cameraEnabled ? 'Follow the movement' : 'Turn camera on to score');
             } catch (error) {
                 console.warn('Pose scoring could not start', error);
@@ -147,7 +149,9 @@
                 const focus = result.feedback[0]?.label;
                 updateMovementFeedback(focus ? `Keep moving - follow the ${focus}` : 'Keep moving - follow along', 'miss');
             } else if (result.rating === 'insufficient') {
-                updateMovementFeedback('Make sure your shoulders and hips are visible', 'insufficient');
+                updateMovementFeedback(currentMode === 'Seated'
+                    ? 'Make sure your shoulders and arms are visible'
+                    : 'Step back so your full body is visible', 'insufficient');
             } else if (result.rating === 'skipped') {
                 updateMovementFeedback('Keep moving - scoring will resume shortly');
             }
@@ -317,6 +321,7 @@
             btnPauseGame.innerText = 'Pause';
             pauseOverlay.classList.remove('active');
             avatarSvg.classList.remove('paused');
+            avatarPose.setMode(currentMode);
             setPosePreview(false);
             void preparePoseScoring(selectedGame);
 

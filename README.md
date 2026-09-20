@@ -67,6 +67,8 @@ The [reference pose visualizer](https://team-koru.netlify.app/tools/reference-po
 
 `js/pose-scoring.js` connects comparison to the stored reference timeline. During gameplay it searches within 300 ms of the demonstration time, uses the best valid comparison in that window, and keeps the best result in each 500 ms scoring segment. The visible 0-100 score is the average of valid segments. Reference gaps, camera-off time, and insufficient player visibility do not add a score sample. Good / Almost / Keep moving feedback appears below the avatar. These timings and thresholds are prototype values and still require representative user testing.
 
+The selected play mode changes the body requirements. Seated mode normalizes around the shoulders and scores upper-body joints without requiring hips or legs in frame. Standing mode uses shoulder and hip anchors and includes lower-body features when reliable.
+
 ## Project status
 
 For current implementation status, completed features, known limitations, unfinished work, architecture, and planned next steps, see [PROJECT_HANDOFF.md](PROJECT_HANDOFF.md).
@@ -77,7 +79,7 @@ For current implementation status, completed features, known limitations, unfini
 
 The main game tracks one player locally in the browser. Every game starts with the camera OFF, including Retry and Next Game. Entering a game does not load the model or request camera permission. The button below the avatar enables tracking and can cancel startup or turn the camera off. Turning it off, Finish, Quit, navigation, and page exit release camera tracks and stop processing. Pause stops processing; Resume only resumes an enabled camera. The model is reused between camera sessions.
 
-The avatar continuously maps reliable shoulder, elbow, wrist, hip, knee, and ankle landmarks to an articulated mirrored figure. Landmark coordinates are body-relative and smoothed to reduce camera jitter. The earlier neutral, left-hand-up, right-hand-up, both-hands-up, and arms-open labels remain available internally for compatibility, but the displayed limbs are no longer limited to those states. Missing optional joints fade their affected limb segments; missing shoulder/hip anchors reset the figure. Webcam frames are never recorded or uploaded, and the webcam image remains hidden during normal gameplay.
+The avatar continuously maps reliable shoulder, elbow, wrist, hip, knee, and ankle landmarks to an articulated mirrored figure. Landmark coordinates are body-relative and smoothed to reduce camera jitter. The earlier neutral, left-hand-up, right-hand-up, both-hands-up, and arms-open labels remain available internally for compatibility, but the displayed limbs are no longer limited to those states. Seated mode needs reliable shoulders and animates the upper body; Standing mode requires reliable shoulders and hips for a stable full-body figure. Missing optional joints fade only their affected limb segments. Webcam frames are never recorded or uploaded, and the webcam image remains hidden during normal gameplay.
 
 Camera ON requests camera access first, attaches the hidden stream, and starts video playback before loading MediaPipe. While tracking loads the camera is ON and can be stopped. Camera-access errors and movement-tracking errors have separate messages; a tracking startup failure also releases the camera. Console warnings identify the failed stage and preserve the original exception. Diagnostics include `errorCategory` (`camera`, `tracking`, or `null`).
 

@@ -88,7 +88,7 @@ Architecture rules:
 - The SVG avatar continuously maps shoulder, elbow, wrist, hip, knee, and ankle landmarks into body-relative screen coordinates.
 - Anatomical left appears on screen-left like a mirror.
 - Coordinate smoothing reduces camera jitter without limiting movement to named poses.
-- Missing optional joints fade only their affected segments. Missing reliable shoulder/hip anchors reset the full figure.
+- Seated mode uses shoulder-centered upper-body articulation. Standing mode requires shoulder and hip anchors for the full-body figure; missing optional joints fade only their affected segments.
 - The earlier `neutral`, `leftHandUp`, `rightHandUp`, `bothHandsUp`, and `armsOpen` labels remain as stable internal compatibility states.
 - Normal gameplay keeps the webcam hidden. `?poseDebug=1` exposes a developer-only toggle that draws the mirrored local camera and reliable pose connections on a canvas; frames are not saved or uploaded.
 
@@ -135,6 +135,8 @@ The current lower-resolution video produces 577 samples: 554 selected and 23 mis
 - `js/pose-scoring.js` selects stored reference frames within 300 ms of the current demonstration time and uses the best valid comparison in that window.
 - Scoring is divided into 500 ms video-time segments. Repeated inference in a segment keeps its best valid similarity, so inference rate and brief jitter do not multiply or immediately reduce the score.
 - The visible 0-100 score is the average of valid scored segments.
+- Seated mode uses shoulder-centered normalization and upper-body features; hips and legs are not required.
+- Standing mode requires shoulder and hip anchors and includes reliable lower-body features.
 - The UI reports Good, Almost, Keep moving, insufficient visibility, and temporary reference-gap states below the avatar.
 - Camera-off time, missing reference windows, and insufficient player visibility do not add score samples.
 - Reference JSON is loaded once and cached in the browser; the demonstration video is still not analysed live.

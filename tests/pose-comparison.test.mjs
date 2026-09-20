@@ -85,3 +85,23 @@ test('partially comparable poses return insufficient when too little remains', (
     assert.equal(result.reason, 'not-enough-comparable-features');
     assert.ok(result.comparedWeight < 1.8);
 });
+
+test('seated mode compares upper-body movement without visible hips or legs', () => {
+    const reference = bothHandsUp();
+    const player = bothHandsUp();
+    for (const index of [23, 24, 25, 26, 27, 28]) player[index].visibility = 0.1;
+    const result = comparePoses(reference, player, { bodyMode: 'seated' });
+    assert.equal(result.compared, true);
+    assert.equal(result.rating, 'good');
+    assert.ok(result.similarity > 0.99);
+    assert.ok(result.feedback.every(item => !item.id.includes('Knee') && !item.id.includes('Ankle')));
+});
+
+test('standing mode still requires shoulder and hip anchors for full-body scoring', () => {
+    const player = bothHandsUp();
+    player[23].visibility = 0.1;
+    player[24].visibility = 0.1;
+    const result = comparePoses(bothHandsUp(), player, { bodyMode: 'standing' });
+    assert.equal(result.compared, false);
+    assert.equal(result.rating, 'insufficient');
+});
