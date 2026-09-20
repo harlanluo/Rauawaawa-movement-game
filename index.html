@@ -157,28 +157,42 @@
 
                     <div class="avatar-svg-wrap">
                         <div class="avatar-wave-rings"></div>
+                        <canvas id="posePreviewCanvas" class="pose-camera-preview" width="640" height="480" hidden aria-label="Camera and pose debug preview"></canvas>
 
-                        <!-- Kaumātua Cyan Silhouette Avatar -->
+                        <!-- Continuously articulated player avatar. -->
                         <svg id="avatarSvg" class="avatar-figure" data-pose="neutral" viewBox="-25 -10 250 330" fill="none" aria-label="Your movement avatar" role="img" xmlns="http://www.w3.org/2000/svg">
-                            <!-- Head -->
-                            <circle cx="100" cy="45" r="26" fill="#00D2D3" />
-                            <!-- Neck -->
-                            <path d="M93 70 H107 V82 H93 Z" fill="#00D2D3" />
-                            <!-- Torso -->
-                            <path d="M78 82 C72 82, 68 88, 68 96 L74 185 C74 192, 80 198, 88 198 H112 C120 198, 126 192, 126 185 L132 96 C132 88, 128 82, 122 82 Z" fill="#00D2D3" />
-                            <!-- Screen-left arm follows the player's anatomical left. -->
-                            <path id="leftArm" d="M68 92 C55 105, 38 120, 32 145 C28 160, 36 172, 44 170 C52 168, 56 150, 68 135 L76 110 Z" fill="#00D2D3" />
-                            <!-- Screen-right arm follows the player's anatomical right. -->
-                            <path id="rightArm" d="M132 92 C145 105, 162 120, 168 145 C172 160, 164 172, 156 170 C148 168, 144 150, 132 135 L124 110 Z" fill="#00D2D3" />
-                            <!-- Left Leg -->
-                            <path d="M82 195 L72 275 C71 285, 78 295, 88 295 C96 295, 100 286, 98 276 L94 195 Z" fill="#00D2D3" />
-                            <!-- Right Leg -->
-                            <path d="M118 195 L128 275 C129 285, 122 295, 112 295 C104 295, 100 286, 102 276 L106 195 Z" fill="#00D2D3" />
+                            <polygon id="avatarTorso" class="avatar-torso" points="72,88 128,88 118,184 82,184" />
+                            <g class="avatar-limbs">
+                                <line id="leftUpperArm" x1="72" y1="96" x2="48" y2="142" />
+                                <line id="leftForearm" x1="48" y1="142" x2="42" y2="188" />
+                                <line id="rightUpperArm" x1="128" y1="96" x2="152" y2="142" />
+                                <line id="rightForearm" x1="152" y1="142" x2="158" y2="188" />
+                                <line id="leftThigh" x1="84" y1="178" x2="78" y2="242" />
+                                <line id="leftShin" x1="78" y1="242" x2="74" y2="304" />
+                                <line id="rightThigh" x1="116" y1="178" x2="122" y2="242" />
+                                <line id="rightShin" x1="122" y1="242" x2="126" y2="304" />
+                            </g>
+                            <g class="avatar-joints">
+                                <circle id="leftShoulderJoint" cx="72" cy="96" r="7" />
+                                <circle id="rightShoulderJoint" cx="128" cy="96" r="7" />
+                                <circle id="leftElbowJoint" cx="48" cy="142" r="7" />
+                                <circle id="rightElbowJoint" cx="152" cy="142" r="7" />
+                                <circle id="leftWristJoint" cx="42" cy="188" r="8" />
+                                <circle id="rightWristJoint" cx="158" cy="188" r="8" />
+                                <circle id="leftHipJoint" cx="84" cy="178" r="7" />
+                                <circle id="rightHipJoint" cx="116" cy="178" r="7" />
+                                <circle id="leftKneeJoint" cx="78" cy="242" r="7" />
+                                <circle id="rightKneeJoint" cx="122" cy="242" r="7" />
+                                <circle id="leftAnkleJoint" cx="74" cy="304" r="8" />
+                                <circle id="rightAnkleJoint" cx="126" cy="304" r="8" />
+                            </g>
+                            <circle id="avatarHead" class="avatar-head" cx="100" cy="48" r="23" />
                         </svg>
                     </div>
                     <div class="avatar-camera-controls">
                         <div id="movementFeedback" class="movement-feedback" role="status" aria-live="polite" data-rating="idle">Turn camera on to score</div>
                         <div id="trackingStatus" class="tracking-status" role="status" aria-live="polite" data-state="stopped">Camera off</div>
+                        <button id="posePreviewToggle" type="button" class="pose-preview-toggle" aria-pressed="false" hidden disabled>Show camera + skeleton</button>
                         <button id="cameraToggle" type="button" class="camera-toggle accessible-target"
                                 aria-pressed="false" data-speech="Turn camera on"
                                 onclick="handleAccessibleClick(this, togglePlayerCamera)">Camera: OFF</button>

@@ -49,7 +49,7 @@ Architecture rules:
 - `css/` — main application layout, visual design, responsive behavior, and avatar state styling.
 - `js/app.js` — screen navigation, game/library state, video playback, Staff simulation, Voice Guidance, camera toggle, and tracker integration.
 - `js/pose-tracker.js` — reusable live player-camera lifecycle and MediaPipe Pose Landmarker wrapper.
-- `js/avatar-pose-controller.js` — maps reliable live landmarks to five stable prototype avatar states.
+- `js/avatar-pose-controller.js` — maps reliable live landmarks to a smoothed, continuously articulated avatar.
 - `js/pose-comparison.js` — pure reference/player pose normalization and similarity helpers.
 - `js/pose-scoring.js` — temporal reference-frame selection and gameplay score aggregation.
 - `assets/videos/` — local exercise video assets. The current prototype has one real exercise video.
@@ -85,15 +85,12 @@ Architecture rules:
 
 ### Current avatar
 
-The avatar is a prototype, not a continuously articulated body. It supports five discrete states:
-
-- `neutral`
-- `leftHandUp`
-- `rightHandUp`
-- `bothHandsUp`
-- `armsOpen`
-
-Shoulder and wrist landmarks must be reliable and hold the same state for 200 ms before the display changes. Unreliable or missing landmarks reset the avatar to neutral.
+- The SVG avatar continuously maps shoulder, elbow, wrist, hip, knee, and ankle landmarks into body-relative screen coordinates.
+- Anatomical left appears on screen-left like a mirror.
+- Coordinate smoothing reduces camera jitter without limiting movement to named poses.
+- Missing optional joints fade only their affected segments. Missing reliable shoulder/hip anchors reset the full figure.
+- The earlier `neutral`, `leftHandUp`, `rightHandUp`, `bothHandsUp`, and `armsOpen` labels remain as stable internal compatibility states.
+- Normal gameplay keeps the webcam hidden. `?poseDebug=1` exposes a developer-only toggle that draws the mirrored local camera and reliable pose connections on a canvas; frames are not saved or uploaded.
 
 ### Reference preprocessing
 
@@ -155,7 +152,7 @@ The current lower-resolution video produces 577 samples: 554 selected and 23 mis
 - Gameplay scoring is a first prototype and has not been calibrated with representative players or kaumātua.
 - The 300 ms tolerance, 500 ms score interval, feature weights, and Good / Almost / Miss thresholds are provisional.
 - Only the current shared demonstration video has a real matching reference dataset.
-- The avatar is a basic five-state prototype.
+- The articulated avatar is still a visual prototype and needs real-device jitter, framing, and accessibility validation.
 - Staff authentication, upload, recording, processing, and publishing are simulated or incomplete and disappear on refresh.
 - There is no production backend, database, user account system, or durable content store.
 - The current reference contains occasional short tracking gaps; the longest current sampled gap is 1.2 seconds.
@@ -172,7 +169,7 @@ The current lower-resolution video produces 577 samples: 554 selected and 23 mis
 - Representative threshold tuning for body-relative pose similarity.
 - Representative validation and tuning of gameplay feedback and scoring.
 - Per-exercise scoring profiles or clinically reviewed movement criteria.
-- Continuous articulated avatar.
+- Production-quality avatar art and behavior validation.
 - Full Staff automated preprocessing flow.
 - Publishing generated exercise video, metadata, and reference content.
 - Real seated exercise dataset.
@@ -184,7 +181,7 @@ The current lower-resolution video produces 577 samples: 554 selected and 23 mis
 
 1. Review and tune comparison thresholds, temporal tolerance, and score aggregation with representative player fixtures.
 2. Validate camera scoring on real devices and with representative users, including kaumātua.
-3. Improve the avatar toward continuous articulated movement.
+3. Validate and polish the articulated avatar on representative devices and movements.
 4. Build the Staff video-processing and publishing workflow.
 5. Complete accessibility, performance, browser, device, and usability testing and polish.
 
@@ -311,9 +308,9 @@ This is a suggested split, not a fixed assignment.
 
 ### Track B — Avatar
 
-- Continuous shoulder, elbow, and wrist articulation.
-- Stable mapping from live landmarks to avatar joints.
-- Later lower-body articulation where camera framing supports it.
+- Validate continuous upper- and lower-body articulation across camera placements.
+- Tune coordinate smoothing and missing-joint behavior with real players.
+- Replace prototype geometry with production-quality avatar art when the visual direction is approved.
 
 ### Track C — Staff processing workflow
 

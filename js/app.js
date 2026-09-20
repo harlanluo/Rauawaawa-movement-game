@@ -57,10 +57,29 @@
         const trackingStatus = document.getElementById('trackingStatus');
         const poseDebug = new URLSearchParams(location.search).get('poseDebug') === '1';
         const poseDebugPanel = document.getElementById('poseDebugPanel');
+        const posePreviewCanvas = document.getElementById('posePreviewCanvas');
+        const posePreviewToggle = document.getElementById('posePreviewToggle');
+        let posePreviewEnabled = false;
+
+        function setPosePreview(enabled) {
+            posePreviewEnabled = poseDebug && enabled;
+            posePreviewCanvas.hidden = !posePreviewEnabled;
+            posePreviewToggle.setAttribute('aria-pressed', String(posePreviewEnabled));
+            posePreviewToggle.textContent = posePreviewEnabled
+                ? 'Hide camera + skeleton' : 'Show camera + skeleton';
+            poseDebugPanel.hidden = !poseDebug || posePreviewEnabled;
+            if (!posePreviewEnabled) {
+                const context = posePreviewCanvas.getContext?.('2d');
+                context?.clearRect(0, 0, posePreviewCanvas.width, posePreviewCanvas.height);
+            }
+        }
+
+        posePreviewToggle.hidden = !poseDebug;
+        posePreviewToggle.addEventListener('click', () => setPosePreview(!posePreviewEnabled));
 
         function renderPoseDiagnostics() {
             if (!poseDebug) return;
-            poseDebugPanel.hidden = false;
+            poseDebugPanel.hidden = posePreviewEnabled;
             poseDebugPanel.textContent = JSON.stringify(window.playerPoseTracking.getDiagnostics(), null, 2);
         }
 
@@ -150,6 +169,9 @@
                 poseDebugTimer = null;
             }
             const active = cameraEnabled && ['loading', 'looking', 'detected', 'paused'].includes(state);
+            const previewAvailable = cameraEnabled && ['looking', 'detected', 'paused'].includes(state);
+            posePreviewToggle.disabled = !previewAvailable;
+            if (!previewAvailable && posePreviewEnabled) setPosePreview(false);
             cameraToggle.textContent = cameraEnabled && state === 'starting'
                 ? 'Cancel camera start' : active ? 'Camera: ON' : 'Camera: OFF';
             cameraToggle.setAttribute('aria-pressed', String(cameraEnabled));
@@ -160,6 +182,7 @@
             cameraEnabled = false;
             poseSession++;
             poseTracker?.stop();
+            setPosePreview(false);
             clearInterval(poseDebugTimer);
             poseDebugTimer = null;
             updateTrackingStatus({ state: 'stopped', message: 'Camera off' });
@@ -197,6 +220,7 @@
                                 const landmarks = poseTracker.getLatestLandmarks();
                                 avatarPose.update(landmarks, timestamp);
                                 updatePoseScoring(landmarks);
+                                if (posePreviewEnabled) poseTracker.drawDebugFrame(posePreviewCanvas);
                             }
                         }
                     });
@@ -293,6 +317,7 @@
             btnPauseGame.innerText = 'Pause';
             pauseOverlay.classList.remove('active');
             avatarSvg.classList.remove('paused');
+            setPosePreview(false);
             void preparePoseScoring(selectedGame);
 
             // Reset video to start

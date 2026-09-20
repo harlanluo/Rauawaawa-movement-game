@@ -1,6 +1,10 @@
 const VISION_URL = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/vision_bundle.mjs';
 const WASM_ROOT = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1/wasm';
 const MODEL_URL = 'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task';
+const DEBUG_CONNECTIONS = [
+    [11, 12], [11, 13], [13, 15], [12, 14], [14, 16],
+    [11, 23], [12, 24], [23, 24], [23, 25], [25, 27], [24, 26], [26, 28]
+];
 
 // Only the hidden player camera is processed locally. Frames are never saved or uploaded.
 // Future reference poses will be loaded separately; demonstration videos are not inputs here.
@@ -206,6 +210,46 @@ export function createPoseTracker({ onStatus = () => {}, onPose = () => {}, forc
         } else if (state === 'paused') status('starting', 'Starting camera…');
     }
 
+    function drawDebugFrame(canvas) {
+        if (!canvas || !stream || video.readyState < 2) return false;
+        const context = canvas.getContext?.('2d');
+        const drawWidth = video.videoWidth || width;
+        const drawHeight = video.videoHeight || height;
+        if (!context || !drawWidth || !drawHeight) return false;
+        if (canvas.width !== drawWidth) canvas.width = drawWidth;
+        if (canvas.height !== drawHeight) canvas.height = drawHeight;
+
+        context.save();
+        context.clearRect(0, 0, drawWidth, drawHeight);
+        context.translate(drawWidth, 0);
+        context.scale(-1, 1);
+        context.drawImage(video, 0, 0, drawWidth, drawHeight);
+        if (latest) {
+            context.strokeStyle = '#50f5d0';
+            context.fillStyle = '#ffdf5d';
+            context.lineWidth = 4;
+            context.lineCap = 'round';
+            for (const [fromIndex, toIndex] of DEBUG_CONNECTIONS) {
+                const from = latest[fromIndex];
+                const to = latest[toIndex];
+                if (!from || !to || (from.visibility ?? 1) < 0.5 || (to.visibility ?? 1) < 0.5) continue;
+                context.beginPath();
+                context.moveTo(from.x * drawWidth, from.y * drawHeight);
+                context.lineTo(to.x * drawWidth, to.y * drawHeight);
+                context.stroke();
+            }
+            for (const index of new Set(DEBUG_CONNECTIONS.flat())) {
+                const point = latest[index];
+                if (!point || (point.visibility ?? 1) < 0.5) continue;
+                context.beginPath();
+                context.arc(point.x * drawWidth, point.y * drawHeight, 5, 0, Math.PI * 2);
+                context.fill();
+            }
+        }
+        context.restore();
+        return true;
+    }
+
     function destroy() {
         stop();
         destroyed = true;
@@ -215,6 +259,7 @@ export function createPoseTracker({ onStatus = () => {}, onPose = () => {}, forc
 
     return {
         initialize, start, pauseProcessing, resumeProcessing, stop, destroy,
+        drawDebugFrame,
         getLatestLandmarks: () => latest?.map(point => ({ ...point })) || null,
         getDiagnostics: () => ({ state, errorCategory, cameraWidth: width, cameraHeight: height, delegate,
             targetInferenceFPS: 15, measuredInferenceFPS: measuredFPS, smoothedInferenceMs: inferenceMs,

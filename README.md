@@ -26,7 +26,7 @@ This University of Waikato student project is an evolving prototype for a camera
 - `css/styles.css` — main application styling
 - `js/app.js` — main application behaviour
 - `js/pose-tracker.js` — reusable live player-camera tracker
-- `js/avatar-pose-controller.js` — stable, simplified avatar pose feedback
+- `js/avatar-pose-controller.js` — smoothed, continuously articulated avatar feedback
 - `js/pose-comparison.js` — pure reference/player pose comparison helpers
 - `js/pose-scoring.js` — reference timeline matching and gameplay score aggregation
 - `assets/images/` — project image assets
@@ -77,7 +77,7 @@ For current implementation status, completed features, known limitations, unfini
 
 The main game tracks one player locally in the browser. Every game starts with the camera OFF, including Retry and Next Game. Entering a game does not load the model or request camera permission. The button below the avatar enables tracking and can cancel startup or turn the camera off. Turning it off, Finish, Quit, navigation, and page exit release camera tracks and stop processing. Pause stops processing; Resume only resumes an enabled camera. The model is reused between camera sessions.
 
-The avatar shows five simplified states: neutral, left hand up, right hand up, both hands up, and arms open. Reliable shoulder/wrist landmarks must indicate a state for 200 ms before switching, with smooth arm transitions (disabled for reduced-motion preferences). The player's anatomical left moves the screen-left arm, like a mirror. Camera off, unavailable, no player, or unreliable landmarks return the avatar to neutral. Webcam frames are never recorded or uploaded, and the webcam image remains hidden.
+The avatar continuously maps reliable shoulder, elbow, wrist, hip, knee, and ankle landmarks to an articulated mirrored figure. Landmark coordinates are body-relative and smoothed to reduce camera jitter. The earlier neutral, left-hand-up, right-hand-up, both-hands-up, and arms-open labels remain available internally for compatibility, but the displayed limbs are no longer limited to those states. Missing optional joints fade their affected limb segments; missing shoulder/hip anchors reset the figure. Webcam frames are never recorded or uploaded, and the webcam image remains hidden during normal gameplay.
 
 Camera ON requests camera access first, attaches the hidden stream, and starts video playback before loading MediaPipe. While tracking loads the camera is ON and can be stopped. Camera-access errors and movement-tracking errors have separate messages; a tracking startup failure also releases the camera. Console warnings identify the failed stage and preserve the original exception. Diagnostics include `errorCategory` (`camera`, `tracking`, or `null`).
 
@@ -85,7 +85,7 @@ Live tracking uses MediaPipe Tasks Vision 1.0.1 with the official Pose Landmarke
 
 Modern Chrome / Edge desktop browsers are the current primary test target. Lower-powered devices use a lighter pose configuration and CPU fallback where needed. Smart TV browser support is not guaranteed; connecting a laptop or mini PC to a TV remains the safer deployment option.
 
-For device tests, inspect `window.playerPoseTracking.getDiagnostics()` and `getLatestLandmarks()` in the browser console. Diagnostics include delegate, actual resolution, target/measured FPS, smoothed inference time, and lifecycle state. `?poseDelegate=cpu` forces CPU for testing; `?poseDebug=1` shows diagnostics (combine with `&poseDelegate=cpu`). No technical panel is shown by default, and neither mode shows a camera preview.
+For device tests, inspect `window.playerPoseTracking.getDiagnostics()` and `getLatestLandmarks()` in the browser console. Diagnostics include delegate, actual resolution, target/measured FPS, smoothed inference time, and lifecycle state. `?poseDelegate=cpu` forces CPU for testing. `?poseDebug=1` shows diagnostics and a developer-only button for a mirrored local camera/skeleton preview (combine with `&poseDelegate=cpu`). No technical panel or camera preview is shown by default.
 
 Run the controlled lifecycle tests with a recent Node.js version (no npm dependencies):
 

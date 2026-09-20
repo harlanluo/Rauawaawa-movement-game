@@ -273,6 +273,35 @@ test('pause while starting prevents processing, detection and stream errors rele
     assert.equal(h.callbacks.size, 0);
 });
 
+test('debug preview draws the local camera frame and reliable pose connections only while running', async () => {
+    const h = await harness();
+    const operations = [];
+    const context = {
+        save: () => operations.push('save'),
+        clearRect: () => operations.push('clear'),
+        translate: () => operations.push('translate'),
+        scale: () => operations.push('scale'),
+        drawImage: () => operations.push('video'),
+        beginPath: () => {}, moveTo: () => {}, lineTo: () => {},
+        stroke: () => operations.push('stroke'),
+        arc: () => {}, fill: () => operations.push('joint'),
+        restore: () => operations.push('restore')
+    };
+    const canvas = { width: 1, height: 1, getContext: () => context };
+    assert.equal(h.tracker.drawDebugFrame(canvas), false);
+    await h.tracker.start();
+    h.setLandmarks(poseFixture('neutral'));
+    h.tick(1000);
+    assert.equal(h.tracker.drawDebugFrame(canvas), true);
+    assert.equal(canvas.width, 640);
+    assert.equal(canvas.height, 480);
+    assert.ok(operations.includes('video'));
+    assert.ok(operations.includes('stroke'));
+    assert.ok(operations.includes('joint'));
+    h.tracker.stop();
+    assert.equal(h.tracker.drawDebugFrame(canvas), false);
+});
+
 test('real app handlers release mock camera on Finish, Quit, navigation and pagehide', async () => {
     const h = await harness();
     const elements = new Map();
@@ -415,4 +444,52 @@ test('avatar maps all five states and requires stable input before switching', (
     const invalid = poseFixture('bothHandsUp'); invalid[11].x = NaN;
     controller.update(invalid, 4600);
     assert.equal(avatar.dataset.pose, 'neutral');
+});
+
+test('avatar continuously maps shoulders, elbows, wrists, hips, knees and ankles', () => {
+    const context = vm.createContext({});
+    vm.runInContext(fs.readFileSync(path.join(__dirname, '../js/avatar-pose-controller.js'), 'utf8'), context);
+    const ids = [
+        'leftUpperArm', 'leftForearm', 'rightUpperArm', 'rightForearm',
+        'leftThigh', 'leftShin', 'rightThigh', 'rightShin',
+        'noseJoint', 'leftShoulderJoint', 'rightShoulderJoint', 'leftElbowJoint',
+        'rightElbowJoint', 'leftWristJoint', 'rightWristJoint', 'leftHipJoint',
+        'rightHipJoint', 'leftKneeJoint', 'rightKneeJoint', 'leftAnkleJoint',
+        'rightAnkleJoint', 'avatarTorso', 'avatarHead'
+    ];
+    const nodes = new Map(ids.map(id => [id, {
+        attributes: new Map(),
+        getAttribute(name) { return this.attributes.get(name) ?? null; },
+        setAttribute(name, value) { this.attributes.set(name, value); }
+    }]));
+    const avatar = { dataset: {}, querySelector: selector => nodes.get(selector.slice(1)) || null };
+    const controller = context.createAvatarPoseController(avatar);
+    const landmarks = poseFixture('neutral');
+    landmarks[0] = { x: 0.5, y: 0.2, visibility: 1 };
+    landmarks[13] = { x: 0.75, y: 0.52, visibility: 1 };
+    landmarks[14] = { x: 0.25, y: 0.52, visibility: 1 };
+    landmarks[15] = { x: 0.78, y: 0.68, visibility: 1 };
+    landmarks[16] = { x: 0.22, y: 0.68, visibility: 1 };
+    landmarks[23] = { x: 0.58, y: 0.65, visibility: 1 };
+    landmarks[24] = { x: 0.42, y: 0.65, visibility: 1 };
+    landmarks[25] = { x: 0.59, y: 0.82, visibility: 1 };
+    landmarks[26] = { x: 0.41, y: 0.82, visibility: 1 };
+    landmarks[27] = { x: 0.60, y: 0.98, visibility: 1 };
+    landmarks[28] = { x: 0.40, y: 0.98, visibility: 1 };
+    controller.update(landmarks, 0);
+
+    const number = (id, attribute) => Number(nodes.get(id).attributes.get(attribute));
+    assert.ok(number('leftShoulderJoint', 'cx') < number('rightShoulderJoint', 'cx'), 'avatar should mirror the player');
+    assert.ok(number('leftElbowJoint', 'cy') > number('leftShoulderJoint', 'cy'));
+    assert.ok(number('leftKneeJoint', 'cy') > number('leftHipJoint', 'cy'));
+    assert.ok(number('leftAnkleJoint', 'cy') > number('leftKneeJoint', 'cy'));
+    const wristBefore = number('leftWristJoint', 'cy');
+    landmarks[15].y = 0.25;
+    controller.update(landmarks, 100);
+    assert.ok(number('leftWristJoint', 'cy') < wristBefore, 'wrist should move continuously between named states');
+    landmarks[15].visibility = 0.1;
+    controller.update(landmarks, 200);
+    assert.equal(number('leftForearm', 'opacity'), 0.18);
+    controller.reset();
+    assert.equal(number('leftForearm', 'opacity'), 1, 'reset should restore a previously obscured segment');
 });

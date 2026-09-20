@@ -512,6 +512,26 @@
             filter: drop-shadow(0 8px 16px rgba(0, 188, 212, 0.3));
         }
 
+        .avatar-torso {
+            fill: #00bfc4;
+            stroke: #007e83;
+            stroke-width: 4;
+            stroke-linejoin: round;
+        }
+
+        .avatar-limbs line {
+            stroke: #00bfc4;
+            stroke-width: 19;
+            stroke-linecap: round;
+        }
+
+        .avatar-joints circle,
+        .avatar-head {
+            fill: #20d4d5;
+            stroke: #007e83;
+            stroke-width: 3;
+        }
+
         .avatar-wave-rings {
             position: absolute;
             width: min(75%, 240px);
@@ -1362,21 +1382,32 @@
 .stage-avatar-panel .avatar-figure { opacity: 0.5; transition: opacity 200ms; }
 .stage-avatar-panel[data-tracking="detected"] .avatar-figure { opacity: 1; }
 .stage-avatar-panel[data-tracking="detected"] { border-color: #00868a; box-shadow: inset 0 0 18px #00bcb42e; }
-#leftArm, #rightArm {
-    transform-box: view-box;
-    transition: transform 220ms ease-in-out;
+.pose-camera-preview {
+    position: absolute;
+    inset: 8px;
+    z-index: 4;
+    width: calc(100% - 16px);
+    height: calc(100% - 16px);
+    object-fit: contain;
+    background: #101820;
+    border: 3px solid #00a4a8;
+    border-radius: 8px;
 }
-/* Shoulder pivots in SVG user coordinates. */
-#leftArm { transform-origin: 70px 98px; }
-#rightArm { transform-origin: 130px 98px; }
-.avatar-figure[data-pose="leftHandUp"] #leftArm,
-.avatar-figure[data-pose="bothHandsUp"] #leftArm { transform: rotate(130deg); }
-.avatar-figure[data-pose="rightHandUp"] #rightArm,
-.avatar-figure[data-pose="bothHandsUp"] #rightArm { transform: rotate(-130deg); }
-.avatar-figure[data-pose="armsOpen"] #leftArm { transform: rotate(65deg); }
-.avatar-figure[data-pose="armsOpen"] #rightArm { transform: rotate(-65deg); }
+.pose-preview-toggle {
+    min-height: 44px;
+    padding: 7px 12px;
+    border: 2px solid #557985;
+    border-radius: 8px;
+    background: #edf4f6;
+    color: #294f5b;
+    font: inherit;
+    font-weight: 800;
+    cursor: pointer;
+}
+.pose-preview-toggle[aria-pressed="true"] { background: #294f5b; color: #fff; }
+.pose-preview-toggle:disabled { opacity: 0.55; cursor: not-allowed; }
 @media (prefers-reduced-motion: reduce) {
-    #leftArm, #rightArm, .stage-avatar-panel .avatar-figure { transition: none; }
+    .stage-avatar-panel .avatar-figure { transition: none; }
 }
 .pose-debug-panel {
     position: absolute;
