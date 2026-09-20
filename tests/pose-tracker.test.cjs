@@ -277,6 +277,7 @@ test('real app handlers release mock camera on Finish, Quit, navigation and page
     const h = await harness();
     const elements = new Map();
     const events = new Map();
+    let scoreUpdates = 0;
     function element(id) {
         if (!elements.has(id)) elements.set(id, {
             textContent: '', dataset: {}, style: {}, value: '', currentTime: 0, duration: 73,
@@ -289,15 +290,27 @@ test('real app handlers release mock camera on Finish, Quit, navigation and page
         document: { getElementById: element, querySelectorAll: () => [] },
         window: { addEventListener: (type, callback) => events.set(type, callback) },
         location: { search: '' }, URLSearchParams, console, setInterval, clearInterval,
-        setTimeout, clearTimeout
+        setTimeout, clearTimeout,
+        fetch: async () => ({ ok: true, json: async () => ({ frames: [{ timeMs: 0, landmarks: poseFixture('neutral') }] }) })
     });
     const module = new vm.SyntheticModule(['createPoseTracker'], function() {
         this.setExport('createPoseTracker', options => { Object.assign(h.listeners, options); return h.tracker; });
     }, { context });
     await module.link(() => {}); await module.evaluate();
+    const scoringModule = new vm.SyntheticModule(['createPoseScoringSession'], function() {
+        this.setExport('createPoseScoringSession', () => ({
+            update() {
+                scoreUpdates++;
+                return { score: 88, result: { rating: 'good', feedback: [] } };
+            }
+        }));
+    }, { context });
+    await scoringModule.link(() => {}); await scoringModule.evaluate();
     const app = fs.readFileSync(path.join(__dirname, '../js/app.js'), 'utf8');
     vm.runInContext(fs.readFileSync(path.join(__dirname, '../js/avatar-pose-controller.js'), 'utf8'), context);
-    new vm.Script(app, { importModuleDynamically: () => module }).runInContext(context);
+    new vm.Script(app, {
+        importModuleDynamically: specifier => specifier === './pose-scoring.js' ? scoringModule : module
+    }).runInContext(context);
     vm.runInContext('triggerConfetti = () => {};', context);
     async function start(action = 'startGame(1)') {
         const requestsBefore = h.stats().requests;
@@ -329,6 +342,9 @@ test('real app handlers release mock camera on Finish, Quit, navigation and page
     h.setLandmarks(poseFixture('leftHandUp'));
     h.tick(1000); h.tick(1250);
     assert.equal(element('avatarSvg').dataset.pose, 'leftHandUp');
+    assert.ok(scoreUpdates > 0);
+    assert.equal(element('gameScoreDisplay').textContent, 88);
+    assert.equal(element('movementFeedback').dataset.rating, 'good');
     h.setLandmarks(null); h.tick(1500);
     assert.equal(element('avatarSvg').dataset.pose, 'neutral');
     assert.equal(element('trackingStatus').textContent, 'Looking for you…');

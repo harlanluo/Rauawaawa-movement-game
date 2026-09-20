@@ -27,7 +27,8 @@ This University of Waikato student project is an evolving prototype for a camera
 - `js/app.js` — main application behaviour
 - `js/pose-tracker.js` — reusable live player-camera tracker
 - `js/avatar-pose-controller.js` — stable, simplified avatar pose feedback
-- `js/pose-comparison.js` — pure reference/player pose comparison helpers for future scoring
+- `js/pose-comparison.js` — pure reference/player pose comparison helpers
+- `js/pose-scoring.js` — reference timeline matching and gameplay score aggregation
 - `assets/images/` — project image assets
 - `assets/videos/` — exercise and game video assets
 - `camera_pose_demo/` — standalone MediaPipe camera prototype
@@ -62,9 +63,9 @@ The [reference pose visualizer](https://team-koru.netlify.app/tools/reference-po
 
 ## Pose comparison
 
-`js/pose-comparison.js` provides a reusable pure comparison module for future scoring integration. It normalizes reference and player landmarks around the hips/torso, compares major arm, leg, hand, foot, and torso features, skips low-visibility features, and returns a structured result with `similarity`, `rating`, and sorted feedback. Missing reference samples are skipped, and insufficient player-camera information is reported separately from bad movement.
+`js/pose-comparison.js` provides a reusable pure comparison module. It normalizes reference and player landmarks around the hips/torso, compares major arm, leg, hand, foot, and torso features, skips low-visibility features, and returns a structured result with `similarity`, `rating`, and sorted feedback. Missing reference samples are skipped, and insufficient player-camera information is reported separately from bad movement.
 
-This module is tested independently and is not yet connected to the game timeline, live camera state, or visible score.
+`js/pose-scoring.js` connects comparison to the stored reference timeline. During gameplay it searches within 300 ms of the demonstration time, uses the best valid comparison in that window, and keeps the best result in each 500 ms scoring segment. The visible 0-100 score is the average of valid segments. Reference gaps, camera-off time, and insufficient player visibility do not add a score sample. Good / Almost / Keep moving feedback appears below the avatar. These timings and thresholds are prototype values and still require representative user testing.
 
 ## Project status
 
@@ -80,7 +81,7 @@ The avatar shows five simplified states: neutral, left hand up, right hand up, b
 
 Camera ON requests camera access first, attaches the hidden stream, and starts video playback before loading MediaPipe. While tracking loads the camera is ON and can be stopped. Camera-access errors and movement-tracking errors have separate messages; a tracking startup failure also releases the camera. Console warnings identify the failed stage and preserve the original exception. Diagnostics include `errorCategory` (`camera`, `tracking`, or `null`).
 
-Live tracking uses MediaPipe Tasks Vision 1.0.1 with the official Pose Landmarker **Lite float16** model, ideal 640 × 480 camera input, and a 15 FPS inference cap. GPU is preferred, with CPU fallback if initialization fails. Camera failure leaves the demonstration video and game controls usable. Demonstration videos are **not analysed live**. Scoring remains unchanged; future scoring will use separately pre-generated reference-pose data. The standalone camera demo remains unchanged.
+Live tracking uses MediaPipe Tasks Vision 1.0.1 with the official Pose Landmarker **Lite float16** model, ideal 640 × 480 camera input, and a 15 FPS inference cap. GPU is preferred, with CPU fallback if initialization fails. Camera failure leaves the demonstration video and game controls usable. Demonstration videos are **not analysed live**; scoring uses separately pre-generated reference-pose data. The standalone camera demo remains unchanged.
 
 Modern Chrome / Edge desktop browsers are the current primary test target. Lower-powered devices use a lighter pose configuration and CPU fallback where needed. Smart TV browser support is not guaranteed; connecting a laptop or mini PC to a TV remains the safer deployment option.
 
@@ -89,7 +90,7 @@ For device tests, inspect `window.playerPoseTracking.getDiagnostics()` and `getL
 Run the controlled lifecycle tests with a recent Node.js version (no npm dependencies):
 
 ```bash
-node --experimental-vm-modules --test --test-isolation=none tests/pose-comparison.test.mjs tests/pose-tracker.test.cjs
+node --experimental-vm-modules --test --test-isolation=none tests/pose-comparison.test.mjs tests/pose-scoring.test.mjs tests/pose-tracker.test.cjs
 ```
 
 These tests use mock camera/model inputs; real webcam permission, detection quality, performance, and the hardware camera indicator still need device testing.

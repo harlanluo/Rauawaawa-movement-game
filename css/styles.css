@@ -1326,6 +1326,25 @@
     gap: 8px;
     z-index: 2;
 }
+.movement-feedback {
+    min-height: 48px;
+    padding: 9px 12px;
+    border: 2px solid #aeb8bf;
+    border-radius: 8px;
+    background: #fff;
+    color: #263238;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    font-size: clamp(16px, 1.5vw, 21px);
+    font-weight: 900;
+    line-height: 1.25;
+}
+.movement-feedback[data-rating="good"] { border-color: #16835f; background: #e1f5ec; color: #0b5f43; }
+.movement-feedback[data-rating="almost"] { border-color: #c47b00; background: #fff4d6; color: #704600; }
+.movement-feedback[data-rating="miss"] { border-color: #b95d45; background: #ffebe5; color: #7a2f20; }
+.movement-feedback[data-rating="insufficient"] { border-color: #557985; background: #edf4f6; color: #294f5b; }
 .camera-toggle {
     min-height: 52px;
     padding: 8px 14px;
