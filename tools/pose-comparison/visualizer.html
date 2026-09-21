@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pose comparison · Algorithm visualizer</title>
+  <link rel="stylesheet" href="visualizer.css">
+</head>
+<body>
+<main>
+  <header>
+    <div>
+      <p class="eyebrow">DEVELOPMENT TOOL</p>
+      <h1>Pose comparison · Algorithm visualizer</h1>
+      <p>Reference landmarks and a controllable player pose evaluated by the gameplay comparison engine.</p>
+    </div>
+    <a href="../reference-pose/visualizer.html">Reference-pose QA</a>
+  </header>
+
+  <p id="status" role="status">Loading reference data…</p>
+
+  <section class="score-strip" aria-label="Comparison result">
+    <div><span>Similarity</span><strong id="similarity">—</strong></div>
+    <div><span>Rating</span><strong id="rating">—</strong></div>
+    <div><span>Compared weight</span><strong id="weight">—</strong></div>
+    <div><span>Reference time</span><strong id="time">—</strong></div>
+  </section>
+
+  <div class="stage-grid">
+    <section>
+      <div class="section-heading"><h2>Reference</h2><span>Stored landmarks</span></div>
+      <div class="media-stage">
+        <video id="video" controls playsinline preload="metadata" controlslist="nofullscreen" disablepictureinpicture></video>
+        <canvas id="reference-canvas" aria-hidden="true"></canvas>
+      </div>
+    </section>
+    <section>
+      <div class="section-heading"><h2>Player input</h2><span id="player-source-label">Simulated landmarks</span></div>
+      <div class="player-stage"><canvas id="player-canvas" aria-label="Player pose preview"></canvas></div>
+    </section>
+  </div>
+
+  <div class="workbench">
+    <section class="controls" aria-labelledby="controls-title">
+      <div class="section-heading"><h2 id="controls-title">Test conditions</h2><button id="reset" type="button">Reset</button></div>
+      <fieldset id="controls" disabled>
+        <legend>Player input</legend>
+        <div class="segmented source-switch">
+          <label><input type="radio" name="source" value="simulation" checked><span>Simulation</span></label>
+          <label><input type="radio" name="source" value="camera"><span>Live camera</span></label>
+        </div>
+        <div id="camera-controls" class="camera-controls" hidden>
+          <button id="camera-toggle" type="button" aria-pressed="false">Start camera</button>
+          <span id="camera-status" role="status">Camera off</span>
+        </div>
+
+        <legend>Body mode</legend>
+        <div class="segmented">
+          <label><input type="radio" name="mode" value="seated"><span>Seated</span></label>
+          <label><input type="radio" name="mode" value="standing" checked><span>Standing</span></label>
+        </div>
+
+        <div id="simulation-controls">
+          <div class="preset-row" aria-label="Presets">
+            <button type="button" data-preset="perfect">Perfect match</button>
+            <button type="button" data-preset="framing">Different framing</button>
+            <button type="button" data-preset="arms">Arm mismatch</button>
+            <button type="button" data-preset="cropped">Lower body hidden</button>
+          </div>
+
+          <label class="range-row"><span>Horizontal position <output id="translate-output">0%</output></span>
+            <input id="translate" type="range" min="-25" max="25" value="0"></label>
+          <label class="range-row"><span>Body scale <output id="scale-output">100%</output></span>
+            <input id="scale" type="range" min="65" max="135" value="100"></label>
+          <label class="range-row"><span>Left arm difference <output id="left-arm-output">0°</output></span>
+            <input id="left-arm" type="range" min="-120" max="120" value="0"></label>
+          <label class="range-row"><span>Right arm difference <output id="right-arm-output">0°</output></span>
+            <input id="right-arm" type="range" min="-120" max="120" value="0"></label>
+          <label class="range-row"><span>Leg difference <output id="legs-output">0°</output></span>
+            <input id="legs" type="range" min="-70" max="70" value="0"></label>
+          <label class="check-row"><input id="hide-lower" type="checkbox"> Hide player hips and legs</label>
+        </div>
+      </fieldset>
+    </section>
+
+    <section class="breakdown" aria-labelledby="breakdown-title">
+      <div class="section-heading"><h2 id="breakdown-title">Feature breakdown</h2><span id="feature-count">0 compared</span></div>
+      <div id="features" class="feature-list"></div>
+    </section>
+  </div>
+</main>
+<script>
+  if (location.protocol === 'file:') {
+    const status = document.getElementById('status');
+    status.textContent = 'HTTP(S) required: run python -m http.server 8000 from the repository root, then open http://localhost:8000/tools/pose-comparison/visualizer.html';
+    status.className = 'error';
+  } else {
+    import('./visualizer.js').catch(error => {
+      const status = document.getElementById('status');
+      status.textContent = 'Unable to start visualizer. Check the local server and console.';
+      status.className = 'error';
+      console.error(error);
+    });
+  }
+</script>
+</body>
+</html>

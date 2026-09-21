@@ -8,7 +8,7 @@
         let isGameRunning = false;
         let isGamePaused = false;
         let isFullscreenActive = false;
-        let currentScore = 180;
+        let currentScore = 0;
         let nextGameId = 7;
         let selectedVideoFileName = '';
         let recordingInterval = null;
@@ -16,15 +16,16 @@
         let processingInterval = null;
 
         const DEFAULT_VIDEO_SRC = 'assets/videos/e9d87196a2d98e530ab1ddebd7c56c5e.mp4';
+        const DEFAULT_REFERENCE_POSE_SRC = 'assets/games/demo-standing/reference-pose.json';
 
         // In-memory prototype library. Changes intentionally disappear on refresh.
         const gameLibrary = [
-            { id: 1, name: 'Game 1', mode: 'Both', description: 'Gentle Upper Body', videoSrc: DEFAULT_VIDEO_SRC },
-            { id: 2, name: 'Game 2', mode: 'Both', description: 'Arm Reach and Stretch', videoSrc: DEFAULT_VIDEO_SRC },
-            { id: 3, name: 'Game 3', mode: 'Both', description: 'Shoulder Twist and Wave', videoSrc: DEFAULT_VIDEO_SRC },
-            { id: 4, name: 'Game 4', mode: 'Both', description: 'Core Stability', videoSrc: DEFAULT_VIDEO_SRC },
-            { id: 5, name: 'Game 5', mode: 'Both', description: 'Side Tap Rhythm', videoSrc: DEFAULT_VIDEO_SRC },
-            { id: 6, name: 'Game 6', mode: 'Both', description: 'Gentle Cool Down', videoSrc: DEFAULT_VIDEO_SRC }
+            { id: 1, name: 'Game 1', mode: 'Both', description: 'Gentle Upper Body', videoSrc: DEFAULT_VIDEO_SRC, referencePoseSrc: DEFAULT_REFERENCE_POSE_SRC },
+            { id: 2, name: 'Game 2', mode: 'Both', description: 'Arm Reach and Stretch', videoSrc: DEFAULT_VIDEO_SRC, referencePoseSrc: DEFAULT_REFERENCE_POSE_SRC },
+            { id: 3, name: 'Game 3', mode: 'Both', description: 'Shoulder Twist and Wave', videoSrc: DEFAULT_VIDEO_SRC, referencePoseSrc: DEFAULT_REFERENCE_POSE_SRC },
+            { id: 4, name: 'Game 4', mode: 'Both', description: 'Core Stability', videoSrc: DEFAULT_VIDEO_SRC, referencePoseSrc: DEFAULT_REFERENCE_POSE_SRC },
+            { id: 5, name: 'Game 5', mode: 'Both', description: 'Side Tap Rhythm', videoSrc: DEFAULT_VIDEO_SRC, referencePoseSrc: DEFAULT_REFERENCE_POSE_SRC },
+            { id: 6, name: 'Game 6', mode: 'Both', description: 'Gentle Cool Down', videoSrc: DEFAULT_VIDEO_SRC, referencePoseSrc: DEFAULT_REFERENCE_POSE_SRC }
         ];
 
         const videoEl = document.getElementById('gameVideo');
@@ -39,23 +40,126 @@
         const playbackSpeed = document.getElementById('playbackSpeed');
         const gameScoreDisplay = document.getElementById('gameScoreDisplay');
         const finalScoreVal = document.getElementById('finalScoreVal');
+        const movementFeedback = document.getElementById('movementFeedback');
 
         let poseTracker = null;
         let poseModule = null;
         let poseSession = 0;
         let poseDebugTimer = null;
         let cameraEnabled = false;
+        let scoringSession = null;
+        let scoringLoadToken = 0;
+        let scoringModule = null;
+        const referencePoseCache = new Map();
         const cameraToggle = document.getElementById('cameraToggle');
         const avatarPanel = document.getElementById('avatarPanel');
         const avatarPose = createAvatarPoseController(avatarSvg);
         const trackingStatus = document.getElementById('trackingStatus');
         const poseDebug = new URLSearchParams(location.search).get('poseDebug') === '1';
         const poseDebugPanel = document.getElementById('poseDebugPanel');
+        const posePreviewCanvas = document.getElementById('posePreviewCanvas');
+        const posePreviewToggle = document.getElementById('posePreviewToggle');
+        let posePreviewEnabled = false;
+
+        function setPosePreview(enabled) {
+            posePreviewEnabled = poseDebug && enabled;
+            posePreviewCanvas.hidden = !posePreviewEnabled;
+            posePreviewToggle.setAttribute('aria-pressed', String(posePreviewEnabled));
+            posePreviewToggle.textContent = posePreviewEnabled
+                ? 'Hide camera + skeleton' : 'Show camera + skeleton';
+            poseDebugPanel.hidden = !poseDebug || posePreviewEnabled;
+            if (!posePreviewEnabled) {
+                const context = posePreviewCanvas.getContext?.('2d');
+                context?.clearRect(0, 0, posePreviewCanvas.width, posePreviewCanvas.height);
+            }
+        }
+
+        posePreviewToggle.hidden = !poseDebug;
+        posePreviewToggle.addEventListener('click', () => setPosePreview(!posePreviewEnabled));
 
         function renderPoseDiagnostics() {
             if (!poseDebug) return;
-            poseDebugPanel.hidden = false;
+            poseDebugPanel.hidden = posePreviewEnabled;
             poseDebugPanel.textContent = JSON.stringify(window.playerPoseTracking.getDiagnostics(), null, 2);
+        }
+
+        function updateMovementFeedback(message, rating = 'idle') {
+            if (movementFeedback.textContent !== message) movementFeedback.textContent = message;
+            movementFeedback.dataset.rating = rating;
+        }
+
+        function resetMovementScore(message = 'Turn camera on to score') {
+            currentScore = 0;
+            gameScoreDisplay.textContent = currentScore;
+            scoringSession = null;
+            updateMovementFeedback(message);
+        }
+
+        async function loadReferencePose(url) {
+            if (!referencePoseCache.has(url)) {
+                referencePoseCache.set(url, fetch(url).then(response => {
+                    if (!response.ok) throw new Error(`Reference pose request failed (${response.status})`);
+                    return response.json();
+                }).catch(error => {
+                    referencePoseCache.delete(url);
+                    throw error;
+                }));
+            }
+            return referencePoseCache.get(url);
+        }
+
+        async function preparePoseScoring(game) {
+            const token = ++scoringLoadToken;
+            scoringSession = null;
+            if (!game?.referencePoseSrc) {
+                updateMovementFeedback('Scoring is not available for this game', 'insufficient');
+                return;
+            }
+            updateMovementFeedback('Loading movement guide…');
+            try {
+                if (!scoringModule) scoringModule = import('./pose-scoring.js');
+                const [module, referenceData] = await Promise.all([
+                    scoringModule,
+                    loadReferencePose(game.referencePoseSrc)
+                ]);
+                if (token !== scoringLoadToken || !isGameRunning) return;
+                scoringSession = module.createPoseScoringSession(referenceData, {
+                    comparisonOptions: { bodyMode: currentMode.toLowerCase() }
+                });
+                updateMovementFeedback(cameraEnabled ? 'Follow the movement' : 'Turn camera on to score');
+            } catch (error) {
+                console.warn('Pose scoring could not start', error);
+                if (token === scoringLoadToken && isGameRunning) {
+                    updateMovementFeedback('Movement scoring unavailable', 'insufficient');
+                }
+            }
+        }
+
+        function renderPoseScore(update) {
+            if (!update?.result) return;
+            currentScore = update.score;
+            gameScoreDisplay.textContent = currentScore;
+            const { result } = update;
+            if (result.rating === 'good') {
+                updateMovementFeedback('Good - keep moving!', 'good');
+            } else if (result.rating === 'almost') {
+                const focus = result.feedback[0]?.label;
+                updateMovementFeedback(focus ? `Almost - adjust your ${focus}` : 'Almost - keep going!', 'almost');
+            } else if (result.rating === 'miss') {
+                const focus = result.feedback[0]?.label;
+                updateMovementFeedback(focus ? `Keep moving - follow the ${focus}` : 'Keep moving - follow along', 'miss');
+            } else if (result.rating === 'insufficient') {
+                updateMovementFeedback(currentMode === 'Seated'
+                    ? 'Make sure your shoulders and arms are visible'
+                    : 'Step back so your full body is visible', 'insufficient');
+            } else if (result.rating === 'skipped') {
+                updateMovementFeedback('Keep moving - scoring will resume shortly');
+            }
+        }
+
+        function updatePoseScoring(playerLandmarks) {
+            if (!scoringSession || videoEl.paused || videoEl.ended) return;
+            renderPoseScore(scoringSession.update(videoEl.currentTime * 1000, playerLandmarks));
         }
 
         function updateTrackingStatus({ state, message }) {
@@ -69,6 +173,9 @@
                 poseDebugTimer = null;
             }
             const active = cameraEnabled && ['loading', 'looking', 'detected', 'paused'].includes(state);
+            const previewAvailable = cameraEnabled && ['looking', 'detected', 'paused'].includes(state);
+            posePreviewToggle.disabled = !previewAvailable;
+            if (!previewAvailable && posePreviewEnabled) setPosePreview(false);
             cameraToggle.textContent = cameraEnabled && state === 'starting'
                 ? 'Cancel camera start' : active ? 'Camera: ON' : 'Camera: OFF';
             cameraToggle.setAttribute('aria-pressed', String(cameraEnabled));
@@ -79,9 +186,11 @@
             cameraEnabled = false;
             poseSession++;
             poseTracker?.stop();
+            setPosePreview(false);
             clearInterval(poseDebugTimer);
             poseDebugTimer = null;
             updateTrackingStatus({ state: 'stopped', message: 'Camera off' });
+            if (isGameRunning) updateMovementFeedback('Turn camera on to score');
             renderPoseDiagnostics();
         }
 
@@ -112,7 +221,10 @@
                         onStatus: updateTrackingStatus,
                         onPose: timestamp => {
                             if (cameraEnabled && isGameRunning && !isGamePaused) {
-                                avatarPose.update(poseTracker.getLatestLandmarks(), timestamp);
+                                const landmarks = poseTracker.getLatestLandmarks();
+                                avatarPose.update(landmarks, timestamp);
+                                updatePoseScoring(landmarks);
+                                if (posePreviewEnabled) poseTracker.drawDebugFrame(posePreviewCanvas);
                             }
                         }
                     });
@@ -202,14 +314,16 @@
             document.getElementById('gameTitleDisplay').textContent = selectedGameName;
             goToScreen('screen-game');
 
-            currentScore = 180;
-            gameScoreDisplay.innerText = currentScore;
+            resetMovementScore();
 
             isGameRunning = true;
             isGamePaused = false;
             btnPauseGame.innerText = 'Pause';
             pauseOverlay.classList.remove('active');
             avatarSvg.classList.remove('paused');
+            avatarPose.setMode(currentMode);
+            setPosePreview(false);
+            void preparePoseScoring(selectedGame);
 
             // Reset video to start
             if (videoSourceEl.getAttribute('src') !== selectedVideoSrc) {
@@ -277,6 +391,7 @@
             if (isGamePaused) {
                 if (cameraEnabled) poseTracker?.pauseProcessing();
                 avatarPose.reset();
+                updateMovementFeedback('Game paused');
                 videoEl.pause();
                 avatarSvg.classList.add('paused');
                 pauseOverlay.classList.add('active');
@@ -286,6 +401,7 @@
             } else {
                 videoEl.play().catch(e => console.log(e));
                 if (cameraEnabled) poseTracker?.resumeProcessing();
+                updateMovementFeedback(cameraEnabled ? 'Follow the movement' : 'Turn camera on to score');
                 avatarSvg.classList.remove('paused');
                 pauseOverlay.classList.remove('active');
                 btnPauseGame.innerText = 'Pause';
@@ -346,6 +462,8 @@
 
         // Stop session cleanly
         function stopGameSession() {
+            scoringLoadToken++;
+            scoringSession = null;
             stopPlayerTracking();
             isGameRunning = false;
             isGamePaused = false;
@@ -632,7 +750,8 @@
                 name,
                 mode: document.getElementById('publishGameMode').value,
                 description: document.getElementById('publishGameDescription').value.trim(),
-                videoSrc: DEFAULT_VIDEO_SRC
+                videoSrc: DEFAULT_VIDEO_SRC,
+                referencePoseSrc: DEFAULT_REFERENCE_POSE_SRC
             });
             selectedVideoFileName = '';
             openStaffLibrary();
