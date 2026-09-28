@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { CATEGORY, CLOTHES_COLOR, PERSON_COLOR, coverRect, stylizeFrame } from '../video_style/stylize.js';
-import { LIMITS, sampleTimes, targetSize } from '../video_style/media.js';
+import { LIMITS, sampleTimes, targetSize, withTimeout } from '../video_style/media.js';
 
 function solidBackground(width, height, rgb) {
     const data = new Uint8ClampedArray(width * height * 4);
@@ -79,4 +79,12 @@ test('sampleTimes emits one timestamp per output frame, capped at the time limit
     assert.deepEqual(sampleTimes(0), []);
     assert.deepEqual(sampleTimes(Number.NaN), []);
     assert.deepEqual(sampleTimes(0.01), [0]);
+});
+
+test('withTimeout resolves with the value when the promise settles in time', async () => {
+    assert.equal(await withTimeout(Promise.resolve(7), 50, 'x'), 7);
+});
+
+test('withTimeout rejects naming the stalled step', async () => {
+    await assert.rejects(withTimeout(new Promise(() => {}), 10, 'encoding frame 8'), /Stalled while encoding frame 8/);
 });

@@ -19,6 +19,19 @@ export function sampleTimes(duration, fps = LIMITS.fps, maxSeconds = LIMITS.maxS
     return Array.from({ length: count }, (_, index) => index / fps);
 }
 
+// Per-step stall limit. WebCodecs waits (e.g. Mediabunny awaiting the encoder's `dequeue` event)
+// have no timeout of their own, and Safari has been seen to stop mid-video without an error.
+export const STALL_MS = 20000;
+
+// Rejects with "Stalled while <label>" if `promise` hasn't settled within `ms`.
+export function withTimeout(promise, ms, label) {
+    let timer;
+    const stall = new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new Error(`Stalled while ${label} (no progress for ${Math.round(ms / 1000)}s)`)), ms);
+    });
+    return Promise.race([promise, stall]).finally(() => clearTimeout(timer));
+}
+
 let modulePromise = null;
 function loadMediabunny() {
     modulePromise ??= import(MEDIABUNNY_URL).catch(error => {
@@ -80,15 +93,22 @@ export async function transcodeFrames(video, {
     }
 
     let finished = false;
+    let frames = null;
     try {
         await output.start();
         const sink = new mb.CanvasSink(videoTrack, { width, height, fit: 'fill', poolSize: 2 });
+        frames = sink.canvasesAtTimestamps(times)[Symbol.asyncIterator]();
         let index = 0;
-        for await (const wrapped of sink.canvasesAtTimestamps(times)) {
+        while (true) {
+            const step = await withTimeout(frames.next(), STALL_MS, `decoding frame ${index + 1}`);
+            if (step.done) break;
             if (isCancelled()) throw new DOMException('Cancelled', 'AbortError');
-            if (wrapped) await drawFrame(wrapped.canvas, index);
+            console.debug(`Video stylizer: decoded ${index + 1}`);
+            if (step.value) await drawFrame(step.value.canvas, index);
+            console.debug(`Video stylizer: segmented ${index + 1}`);
             // A missing frame (null) re-encodes the previous output so timing stays intact.
-            await videoSource.add(index / fps, 1 / fps);
+            await withTimeout(videoSource.add(index / fps, 1 / fps), STALL_MS, `encoding frame ${index + 1}`);
+            console.debug(`Video stylizer: encoded ${index + 1}`);
             index++;
         }
         videoSource.close();
@@ -100,18 +120,23 @@ export async function transcodeFrames(video, {
             for await (const packet of new mb.EncodedPacketSink(audioTrack).packets()) {
                 if (isCancelled()) throw new DOMException('Cancelled', 'AbortError');
                 if (packet.timestamp >= endTime) break;
-                await audioSource.add(packet, first && decoderConfig ? { decoderConfig } : undefined);
+                await withTimeout(
+                    audioSource.add(packet, first && decoderConfig ? { decoderConfig } : undefined),
+                    STALL_MS, 'copying audio'
+                );
                 first = false;
             }
             audioSource.close();
         }
 
-        await output.finalize();
+        await withTimeout(output.finalize(), STALL_MS, 'finalizing');
         finished = true;
         return { bytes: new Uint8Array(output.target.buffer), frames: index, audioNote };
     } finally {
+        // Don't await: after a stall the iterator may never settle.
+        if (!finished) frames?.return?.().catch(() => {});
         if (!finished) {
-            try { await output.cancel(); } catch { /* already torn down */ }
+            try { await withTimeout(output.cancel(), 5000, 'cancelling'); } catch { /* torn down or stuck */ }
         }
     }
 }

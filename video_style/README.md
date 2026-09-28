@@ -23,7 +23,9 @@ Frames stream decode → stylize → encode one at a time, so memory stays flat 
 - Caps: 60 s, 15 fps, 640 px wide.
 - Audio is kept only when its codec fits in MP4 (AAC, Opus, MP3, …); otherwise the output is silent and the status says so.
 - Libraries load from jsdelivr and the model from Google Storage, so the first run needs network access.
-- Needs WebCodecs + OffscreenCanvas: Chrome/Edge 94+, Safari 16.4+, Firefox 130+.
+- **Use Chrome or Edge (94+).** Safari 16.4+ and Firefox 130+ have the APIs, but Safari has been seen to stall silently
+  around frame 8, most likely in Mediabunny's wait for the H.264 encoder's `dequeue` event. Each decode/encode step now
+  gives up after 20s with "Stalled while <step> frame N", and the console logs a decoded/segmented/encoded heartbeat per frame.
 - Safari logs a 404 for `vision_bundle_mjs.js.map`; that's DevTools looking for a source map MediaPipe doesn't publish, and is harmless.
 
 Tests for the pure parts (color mapping, cover-fit, sizing, frame timing): `node --test tests/video-style.test.mjs`.
