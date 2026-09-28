@@ -36,6 +36,15 @@
       color: #4b5d58;
     }
 
+    .warning {
+      padding: 10px 14px;
+      border-left: 4px solid #c47a00;
+      border-radius: 6px;
+      background: #fff4dc;
+      color: #5c3b00;
+      font-weight: 600;
+    }
+
     .controls {
       display: flex;
       flex-wrap: wrap;
@@ -101,7 +110,7 @@
 <body>
   <main>
     <h1>Video Stylizer</h1>
-    <p>Upload or record a short video. Skin and hair turn red, clothes turn blue, and the background becomes a beach. Everything runs locally in your browser — nothing is uploaded.</p>
+    <p class="warning" role="note">Chrome (or Edge) is the only supported browser. Safari stalls partway through encoding.</p>
 
     <div class="controls">
       <input id="video-file" type="file" accept="video/*" aria-label="Video file">
@@ -112,7 +121,6 @@
 
     <progress id="progress" max="1" value="0"></progress>
     <div id="status" role="status" aria-live="polite">Choose or record a video to begin.</div>
-    <p id="browser-note" hidden></p>
     <canvas id="preview" width="480" height="270" aria-label="Stylized preview"></canvas>
   </main>
   <script type="module" src="./video-style.js"></script>

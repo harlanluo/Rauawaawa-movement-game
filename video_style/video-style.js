@@ -161,13 +161,6 @@ elements.file.addEventListener('change', () => {
 elements.start.addEventListener('click', run);
 elements.cancel.addEventListener('click', cancel);
 
-// Chrome/Edge expose userAgentData; Safari and Firefox don't. Non-blocking: other browsers may still work.
-if (!navigator.userAgentData) {
-    const note = document.querySelector('#browser-note');
-    note.textContent = 'Tested in Chrome/Edge. Safari currently stalls partway through encoding.';
-    note.hidden = false;
-}
-
 const REQUIRED = ['OffscreenCanvas', 'createImageBitmap', 'WebAssembly', 'VideoDecoder', 'VideoEncoder'];
 const missing = REQUIRED.filter(name => typeof globalThis[name] === 'undefined');
 if (missing.length) {
