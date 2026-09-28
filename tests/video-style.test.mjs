@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { CATEGORY, CLOTHES_COLOR, PERSON_COLOR, coverRect, stylizeFrame } from '../video_style/stylize.js';
-import { compressArgs, encodeArgs, extractFramesArgs, framePath, inputName, LIMITS } from '../video_style/transcode.js';
+import { LIMITS, sampleTimes, targetSize } from '../video_style/media.js';
 
 function solidBackground(width, height, rgb) {
     const data = new Uint8ClampedArray(width * height * 4);
@@ -62,31 +62,21 @@ test('coverRect crops the long axis and keeps the aspect ratio', () => {
     assert.equal(rect.sy, 0);
 });
 
-test('compress args cap duration, frame rate and width', () => {
-    const args = compressArgs('input.mov');
-    assert.deepEqual(args.slice(0, 4), ['-i', 'input.mov', '-t', String(LIMITS.maxSeconds)]);
-    const filter = args[args.indexOf('-vf') + 1];
-    assert.match(filter, /^fps=15,/);
-    assert.match(filter, /min\(640,iw\)/);
-    assert.match(filter, /:-2$/);
-    assert.equal(args[args.indexOf('-c:v') + 1], 'libx264');
-    assert.equal(args[args.indexOf('-c:a') + 1], 'aac');
-    assert.equal(args.at(-1), 'compressed.mp4');
+test('targetSize caps width, keeps aspect ratio and even dimensions, never upscales', () => {
+    assert.deepEqual(targetSize(3840, 2160), { width: 640, height: 360 });
+    assert.deepEqual(targetSize(1080, 1920), { width: 640, height: 1136 });
+    assert.deepEqual(targetSize(480, 270), { width: 480, height: 270 });
+    assert.deepEqual(targetSize(481, 271), { width: 480, height: 270 });
+    const { width, height } = targetSize(1920, 1080, LIMITS.maxWidth);
+    assert.equal(width % 2 + height % 2, 0);
 });
 
-test('frame extraction and encode args agree on the frame naming pattern', () => {
-    assert.equal(extractFramesArgs().at(-1), 'frames/f_%05d.jpg');
-    const args = encodeArgs();
-    assert.equal(args[args.indexOf('-framerate') + 1], '15');
-    assert.equal(args[args.indexOf('-i') + 1], 'out/f_%05d.jpg');
-    assert.ok(args.includes('1:a?'), 'audio mapping must be optional');
-    assert.equal(args[args.indexOf('-pix_fmt') + 1], 'yuv420p');
-    assert.equal(args.at(-1), 'stylized.mp4');
-    assert.equal(framePath('frames', 7), 'frames/f_00007.jpg');
-});
-
-test('input file names keep a safe extension', () => {
-    assert.equal(inputName('My Clip.MOV'), 'input.mov');
-    assert.equal(inputName('clip.webm'), 'input.webm');
-    assert.equal(inputName('no-extension'), 'input.mp4');
+test('sampleTimes emits one timestamp per output frame, capped at the time limit', () => {
+    assert.deepEqual(sampleTimes(0.2, 15), [0, 1 / 15, 2 / 15]);
+    assert.equal(sampleTimes(10, 15).length, 150);
+    assert.equal(sampleTimes(300, LIMITS.fps, LIMITS.maxSeconds).length, LIMITS.fps * LIMITS.maxSeconds);
+    assert.ok(sampleTimes(300).at(-1) < LIMITS.maxSeconds);
+    assert.deepEqual(sampleTimes(0), []);
+    assert.deepEqual(sampleTimes(Number.NaN), []);
+    assert.deepEqual(sampleTimes(0.01), [0]);
 });

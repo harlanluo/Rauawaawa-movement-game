@@ -1,4 +1,4 @@
-import { createTranscoder, LIMITS } from './transcode.js';
+import { LIMITS, openVideo, sampleTimes, targetSize, transcodeFrames } from './media.js';
 import { createSegmenter } from './segment.js';
 import { coverRect, stylizeFrame } from './stylize.js';
 
@@ -15,7 +15,6 @@ const elements = {
     download: document.querySelector('#download')
 };
 
-let transcoder = null;
 let segmenter = null;
 let backgroundImage = null;
 let backgroundCache = null;
@@ -42,7 +41,6 @@ function checkCancelled() {
 
 async function loadTools() {
     const pending = [];
-    if (!transcoder) pending.push(createTranscoder().then(created => { transcoder = created; }));
     if (!segmenter) pending.push(createSegmenter().then(created => { segmenter = created; }));
     if (!backgroundImage) {
         pending.push(fetch(BACKGROUND_URL)
@@ -74,39 +72,31 @@ function showPreview(canvas) {
     preview.getContext('2d').drawImage(canvas, 0, 0, preview.width, preview.height);
 }
 
-async function stylizeFrames(frameCount) {
-    await transcoder.prepareOutput();
+async function stylizeVideo(video) {
+    const { width, height } = targetSize(video.sourceWidth, video.sourceHeight);
+    const times = sampleTimes(video.duration);
+    if (!times.length) throw new Error('This video has no duration');
+    const outputCanvas = new OffscreenCanvas(width, height);
+    const context = outputCanvas.getContext('2d');
+    const imageData = context.createImageData(width, height);
+    const background = backgroundPixels(width, height);
     const timestampBase = segmenter.nextTimestampBase();
-    let canvas = null;
-    let context = null;
-    let imageData = null;
-    for (let index = 1; index <= frameCount; index++) {
-        checkCancelled();
-        const bytes = await transcoder.readFrame(index);
-        const bitmap = await createImageBitmap(new Blob([bytes], { type: 'image/jpeg' }));
-        const { width, height } = bitmap;
-        let segmentation;
-        try {
-            segmentation = segmenter.segment(bitmap, timestampBase + (index - 1) * 1000 / LIMITS.fps);
-        } finally {
-            bitmap.close();
+
+    return transcodeFrames(video, {
+        width, height, times, outputCanvas,
+        isCancelled: () => cancelled,
+        drawFrame(frame, index) {
+            const segmentation = segmenter.segment(frame, timestampBase + index * 1000 / LIMITS.fps);
+            stylizeFrame({
+                mask: segmentation.mask, maskWidth: segmentation.width, maskHeight: segmentation.height,
+                background, width, height, out: imageData.data
+            });
+            context.putImageData(imageData, 0, 0);
+            const done = index + 1;
+            if (index === 0 || done % PREVIEW_EVERY === 0 || done === times.length) showPreview(outputCanvas);
+            setStatus(`Stylizing frame ${done} of ${times.length}…`, done / times.length);
         }
-        if (!canvas || canvas.width !== width || canvas.height !== height) {
-            canvas = new OffscreenCanvas(width, height);
-            context = canvas.getContext('2d');
-            imageData = context.createImageData(width, height);
-        }
-        stylizeFrame({
-            mask: segmentation.mask, maskWidth: segmentation.width, maskHeight: segmentation.height,
-            background: backgroundPixels(width, height), width, height, out: imageData.data
-        });
-        context.putImageData(imageData, 0, 0);
-        const blob = await canvas.convertToBlob({ type: 'image/jpeg', quality: 0.9 });
-        await transcoder.writeOutputFrame(index, new Uint8Array(await blob.arrayBuffer()));
-        await transcoder.deleteFrame(index);
-        if (index === 1 || index % PREVIEW_EVERY === 0 || index === frameCount) showPreview(canvas);
-        setStatus(`Stylizing frame ${index} of ${frameCount}…`, index / frameCount);
-    }
+    });
 }
 
 function offerDownload(bytes, sourceName) {
@@ -126,33 +116,33 @@ async function run() {
     cancelled = false;
     setRunning(true);
     elements.download.hidden = true;
+    let stage = 'loading tools';
+    let video = null;
     try {
-        setStatus('Loading video tools and segmentation model…');
+        setStatus('Loading segmentation model…');
         await loadTools();
         checkCancelled();
-        setStatus(`Compressing (max ${LIMITS.maxSeconds}s, ${LIMITS.fps} fps, ${LIMITS.maxWidth}px wide)…`, 0);
-        await transcoder.compress(file, progress => setStatus('Compressing…', progress));
+        stage = 'reading video';
+        setStatus('Reading video…');
+        video = await openVideo(file);
         checkCancelled();
-        setStatus('Extracting frames…');
-        const frameCount = await transcoder.extractFrames();
-        if (!frameCount) throw new Error('No video frames were found in this file');
-        await stylizeFrames(frameCount);
-        setStatus('Encoding stylized video…', 0);
-        const output = await transcoder.encode(progress => setStatus('Encoding stylized video…', progress));
+        const seconds = Math.min(video.duration, LIMITS.maxSeconds);
+        const source = `${video.sourceWidth}×${video.sourceHeight} ${video.codec ?? ''}, ${video.duration.toFixed(1)}s`;
+        console.info(`Video stylizer: source ${source}`);
+        stage = 'stylizing';
+        const result = await stylizeVideo(video);
         checkCancelled();
-        offerDownload(output, file.name);
-        setStatus(`Done — ${frameCount} frames stylized. Download started.`, 1);
+        offerDownload(result.bytes, file.name);
+        setStatus(`Done — ${result.frames} frames (${seconds.toFixed(1)}s from ${source}), ${result.audioNote}. Download started.`, 1);
     } catch (error) {
         if (error?.name === 'AbortError' || cancelled) {
             setStatus('Cancelled.', 0);
         } else {
-            console.error('Video stylization failed', error);
-            setStatus(`Failed: ${error?.message ?? error}`, 0);
+            console.error(`Video stylization failed while ${stage}`, error);
+            setStatus(`Failed while ${stage}: ${error?.message ?? error}`, 0);
         }
     } finally {
-        if (transcoder) {
-            try { await transcoder.cleanup(); } catch (error) { console.warn('Cleanup failed', error); }
-        }
+        video?.input.dispose();
         setRunning(false);
     }
 }
@@ -161,12 +151,6 @@ function cancel() {
     if (!running) return;
     cancelled = true;
     setStatus('Cancelling…');
-    // Terminating is the only way to stop an in-flight ffmpeg command; it reloads on next run.
-    if (transcoder) {
-        const stopping = transcoder;
-        transcoder = null;
-        stopping.terminate();
-    }
 }
 
 elements.file.addEventListener('change', () => {
@@ -177,7 +161,9 @@ elements.file.addEventListener('change', () => {
 elements.start.addEventListener('click', run);
 elements.cancel.addEventListener('click', cancel);
 
-if (typeof OffscreenCanvas === 'undefined' || typeof createImageBitmap === 'undefined' || typeof WebAssembly === 'undefined') {
+const REQUIRED = ['OffscreenCanvas', 'createImageBitmap', 'WebAssembly', 'VideoDecoder', 'VideoEncoder'];
+const missing = REQUIRED.filter(name => typeof globalThis[name] === 'undefined');
+if (missing.length) {
     elements.file.disabled = true;
-    setStatus('This browser is missing OffscreenCanvas, createImageBitmap or WebAssembly, which this prototype needs.', 0);
+    setStatus(`This browser is missing ${missing.join(', ')}, which this prototype needs.`, 0);
 }
