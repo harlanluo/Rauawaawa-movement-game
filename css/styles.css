@@ -226,7 +226,7 @@
         }
 
         .home-brand {
-            font-family: 'Fredoka', sans-serif;
+            font-family: 'Nunito', sans-serif;
             font-size: 28px;
             color: #37474f;
             font-weight: 700;
@@ -999,7 +999,7 @@
         }
 
         .role-heading {
-            font-family: 'Fredoka', sans-serif;
+            font-family: 'Nunito', sans-serif;
             align-self: end;
             width: 100%;
             max-width: 1200px;
@@ -1007,6 +1007,10 @@
             line-height: 1.08;
             text-align: center;
             color: #1e293b;
+        }
+
+        .role-heading-line {
+            white-space: nowrap;
         }
 
         #screen-start .role-options {
