@@ -382,7 +382,7 @@
                 <form class="staff-form" onsubmit="saveLibrarySettings(event)">
                     <label>Local library folder<input id="libraryPath" type="text" required placeholder="D:\MovementLibrary"></label>
                     <button id="chooseLibraryFolderBtn" class="staff-btn secondary" type="button" onclick="chooseLibraryFolder()">Choose Folder…</button>
-                    <p>Choose a folder or enter a full folder path on this computer. New folders are created automatically. Switching loads that folder's games and keeps files in the previous folder.</p>
+                    <p id="libraryFolderHelp">Choose a folder or enter a full folder path on this computer. New folders are created automatically. Switching loads that folder's games and keeps files in the previous folder.</p>
                     <button class="staff-btn" type="submit">Save and Load Library</button>
                     <p id="librarySettingsStatus" role="status" aria-live="polite"></p>
                     <a id="libraryServerLink" href="http://127.0.0.1:8001/" hidden>Open local library version</a>
@@ -462,7 +462,7 @@
                         <input id="videoFileInput" type="file" accept="video/*" onchange="handleVideoFileSelected(event)" style="margin-top: 15px; user-select: text;">
                         <p id="selectedVideoName" class="file-name" aria-live="polite">No file selected</p>
                     </div>
-                    <p class="prototype-note" style="margin-top: 16px;">The file stays on this device. Processing runs on this device using the local preview server.</p>
+                    <p class="prototype-note" style="margin-top: 16px;">The file stays on this device. Video conversion and movement extraction run on this device.</p>
                     <div class="staff-actions">
                         <button id="uploadContinueBtn" class="staff-btn success" disabled onclick="beginProcessing('Uploaded video')">Continue to Processing</button>
                     </div>

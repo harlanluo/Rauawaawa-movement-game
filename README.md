@@ -100,7 +100,7 @@ node --experimental-vm-modules --test --test-isolation=none tests/pose-compariso
 These tests use mock camera/model inputs; real webcam permission, detection quality, performance, and the hardware camera indicator still need device testing.
 
 
-## Local upload with movement scoring
+## Optional Python backend
 
 Use the Python extraction environment for the integrated upload preview:
 
@@ -110,9 +110,9 @@ tools/reference-pose/.venv/Scripts/python -m pip install -r tools/reference-pose
 tools/reference-pose/.venv/Scripts/python tools/local_server.py
 ```
 
-Open `http://127.0.0.1:8001/` in Chrome or Edge. Staff demo login is `staff` / `123`. Choose Add New Game → Upload Video, then Continue to Processing. The original video is sent only to the loopback server for the existing Python extraction algorithm; the browser simultaneously runs Josten's stylizer. Publish becomes available when both the MP4 and reference JSON are ready. Newly published games use their own movement reference for scoring. First extraction downloads the verified official Full pose model.
+Open `http://127.0.0.1:8001/?libraryBackend=local` in Chrome or Edge to use the optional Python backend. Staff demo login is `staff` / `123`. Choose Add New Game → Upload Video, then Continue to Processing. The original video is sent only to the loopback server for the existing Python extraction algorithm; the browser simultaneously runs Josten's stylizer. Publish becomes available when both the MP4 and reference JSON are ready. Newly published games use their own movement reference for scoring. First extraction downloads the verified official Full pose model.
 
-The video stylizer outputs the first 60 seconds, at 15 FPS and up to 640 pixels wide. Reference sampling stays at 10 FPS with original timestamps and is restricted to that same first 60 seconds. Uploads are limited to 200 MB and one extraction at a time. The Python tool requires constant-frame-rate input; errors remain visible instead of publishing an unscored game. Cancel or navigation stops extraction. Temporary original files are removed after extraction; games and object URLs remain only for the current browser session. Staff recording uses the device camera, with optional microphone audio, a 60-second cap, preview/retake/download, and MP4 normalization before processing. Plain `python -m http.server` and static hosting do not provide the extraction API.
+The video stylizer outputs the first 60 seconds, at 15 FPS and up to 640 pixels wide. Reference sampling stays at 10 FPS with original timestamps and is restricted to that same first 60 seconds. Uploads are limited to 200 MB and one extraction at a time. The Python tool requires constant-frame-rate input; errors remain visible instead of publishing an unscored game. Cancel or navigation stops extraction. Temporary original files are removed after extraction; games and object URLs remain only for the current browser session. Staff recording uses the device camera, with optional microphone audio, a 60-second cap, preview/retake/download, and MP4 normalization before processing. The optional Python backend provides an extraction API; the default browser mode also works with plain static hosting.
 
 Run API contract tests with `python -m unittest discover -s tests -p test_local_server.py`.
 
@@ -125,4 +125,17 @@ Choose Seated or Standing before processing an upload or recording. Seated refer
 
 ## Persistent local library
 
-Staff → Library Settings lets you configure an absolute local folder path. The default is `<repository>/local-games`; the selection persists in ignored `local-settings.json`. Saving a game writes only `video.mp4`, `reference-pose.json` and `game.json` into a numeric game subfolder. Page startup reads `/api/games` from disk. Editing a saved game updates its metadata; deletion moves its folder into `.trash` for recovery. Switching libraries loads the target folder without moving or removing previous files. Use the local server on port 8001; static hosting cannot access local disk. Older session-only games must be downloaded/reprocessed before refreshing the old page.
+Staff → Library Settings lets you configure an absolute local folder path. The default is `<repository>/local-games`; the selection persists in ignored `local-settings.json`. Saving a game writes only `video.mp4`, `reference-pose.json` and `game.json` into a numeric game subfolder. Page startup reads `/api/games` from disk. Editing a saved game updates its metadata; deletion moves its folder into `.trash` for recovery. Switching libraries loads the target folder without moving or removing previous files. For the optional Python backend use port 8001 with `?libraryBackend=local`. Default browser mode uses a user-authorized directory handle on static hosting. Older session-only games must be downloaded/reprocessed before refreshing the old page.
+
+
+## Browser-only workflow (default; Netlify compatible)
+
+The default app no longer calls Python APIs. Serve the existing static files over HTTPS (Netlify) or localhost, using desktop Chrome/Edge. Staff → Game Library → Settings → Choose Folder grants access to a local library. Save and Load Library reconnects the handle if permission is required. The folder handle is stored in IndexedDB for this browser/profile/origin; the browser exposes its name, not its absolute path. Choosing a folder on localhost does not grant the Netlify origin access: choose it once there too. Browsers without File System Access support display a clear error.
+
+Movement reference extraction runs MediaPipe Full in the browser at 10 FPS, sampling the first 60 seconds through Mediabunny/WebCodecs. It supports seated upper-body and standing full-body modes. The browser selector uses a deterministic greedy continuity rule with explicit gaps and ambiguity rejection; it is not identical to the Python tool's bounded offline Viterbi search. Validate multi-person content before use. Model/library downloads still need internet access. Conversion continues to use Josten's unchanged segmentation pipeline.
+
+Only converted video, reference JSON and game metadata are saved to the selected folder. Existing Python libraries are readable. Editing changes folder names; deleting copies the three game files into `.trash` before removal. Unrelated files are left in place. No raw footage is persisted, and processing does not upload the video.
+
+To use the old Python backend explicitly, add `?libraryBackend=local` on port 8001. No backend is required for the default Netlify workflow. Run browser workflow tests with `node --test tests/browser-workflow.test.mjs`.
+
+API references: [Chrome File System Access](https://developer.chrome.com/docs/capabilities/web-apis/file-system-access) and [MediaPipe Pose Landmarker for Web](https://ai.google.dev/edge/mediapipe/solutions/vision/pose_landmarker/web_js).

@@ -429,3 +429,10 @@ Privacy update (2026-10-05): published libraries no longer store original footag
 
 
 Library folders now use game names instead of numeric IDs. Windows-invalid characters are replaced, reserved names are prefixed, duplicates gain numbered suffixes, and editing names renames folders. Stable numeric media URLs resolve through stored metadata so renamed games remain playable. Existing numeric folders migrate when listed; moves are checked to remain in the configured library. Nine API/storage tests passed.
+
+
+### Browser-only default workflow (2026-10-05)
+
+`js/browser-library.js` implements directory-handle persistence through IndexedDB, user-triggered directory selection and reauthorization, save/list/edit/archive through File System Access, and legacy Python-library compatibility. Absolute paths are not available to browser code. `js/browser-reference.js` decodes source frames using Mediabunny, runs MediaPipe Full locally, and generates the same frames/timeMs/landmarks structure consumed by scoring. Seated and standing quality gates match the intended body requirements. The browser selector is explicitly a greedy normalized-continuity variant, not the Python offline Viterbi algorithm. Defaults use no `/api/*` requests; `?libraryBackend=local` selects the existing optional backend. Deployment is ordinary static hosting. No raw footage is saved. Permission restoration can require clicking Save and Load Library after reopening; each origin has its own stored handle.
+
+Three new tests cover seated/standing requirements, framing continuity, browser library save/reload/media/edit/archive, raw-video exclusion and denied permissions. This work is local only; the user requested no push.

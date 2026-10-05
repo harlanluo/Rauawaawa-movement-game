@@ -1,6 +1,8 @@
         /* ---------------------------------------------------- */
         /* APPLICATION STATE & LOGIC                            */
         /* ---------------------------------------------------- */
+        const browserOnly = new URLSearchParams(location.search).get('libraryBackend') !== 'local';
+        const browserLibraryModule = browserOnly ? import('./browser-library.js') : null;
         let isVoiceMode = false;
         let currentFocusedButton = null;
         let currentMode = 'Seated'; // 'Seated' or 'Standing'
@@ -42,6 +44,16 @@
             status.textContent = 'Extracting movement from the original video…';
             let jobId = null;
             try {
+                if (browserOnly) {
+                    const { extractBrowserReference } = await import('./browser-reference.js');
+                    const reference = await extractBrowserReference(file, { mode: extractionMode.toLowerCase(), signal: controller.signal,
+                        onProgress: message => { if (!controller.signal.aborted) status.textContent = message; } });
+                    if (controller.signal.aborted) return;
+                    processedReferenceSrc = URL.createObjectURL(new Blob([JSON.stringify(reference)], { type: 'application/json' }));
+                    status.textContent = 'Movement guide ready — scoring enabled for this video.';
+                    updateProcessingReady();
+                    return;
+                }
                 const response = await fetch('/api/reference-pose', {
                     method: 'POST', body: file, signal: controller.signal,
                     headers: { 'X-Body-Mode': extractionMode.toLowerCase() }
@@ -1145,6 +1157,7 @@
         });
 
         async function localApi(url, options = {}) {
+            if (browserOnly) return (await browserLibraryModule).libraryApi(url, options);
             const response = await fetch(url, options);
             if (!response.headers.get('content-type')?.includes('application/json')) {
                 throw new Error('Local storage requires the local app server on port 8001. Use the Open local library version link below.');
@@ -1174,7 +1187,11 @@
             goToScreen('screen-library-settings');
             const localLink = document.getElementById('libraryServerLink');
             localLink.href = `http://127.0.0.1:8001/${location.search}`;
-            localLink.hidden = location.port === '8001';
+            localLink.hidden = true;
+            document.getElementById('libraryPath').readOnly = browserOnly;
+            document.getElementById('libraryFolderHelp').textContent = browserOnly
+                ? 'Choose a folder on this device. Save and Load reconnects it after reopening the browser. Your videos stay on this device.'
+                : 'Choose a folder or enter a full folder path. Switching leaves previous files in place.';
             try {
                 const settings = await localApi('/api/settings');
                 document.getElementById('libraryPath').value = settings.libraryPath;
@@ -1187,7 +1204,8 @@
             const button = event.target.querySelector('button[type="submit"]');
             button.disabled = true;
             try {
-                const settings = await localApi('/api/settings', { method: 'POST', body: JSON.stringify({
+                if (browserOnly) await (await browserLibraryModule).authorizeDirectory();
+                const settings = await localApi('/api/settings', { method: browserOnly ? undefined : 'POST', body: browserOnly ? undefined : JSON.stringify({
                     libraryPath: document.getElementById('libraryPath').value
                 }) });
                 referencePoseCache.clear();
@@ -1198,20 +1216,22 @@
         }
         if (typeof fetch === 'function') loadLocalLibrary().catch(error => {
             console.warn('Local library could not load', error);
-            document.getElementById('libraryStatusMessage').textContent = 'Local library unavailable. Check the local server.';
+            document.getElementById('libraryStatusMessage').textContent = browserOnly ? 'Choose or reconnect your local library in Game Library → Settings.' : 'Local library unavailable. Check the local server.';
         });
 
         async function chooseLibraryFolder() {
             const button = document.getElementById('chooseLibraryFolderBtn');
             const status = document.getElementById('librarySettingsStatus');
             button.disabled = true;
-            status.textContent = 'Choose a folder in the Windows dialog…';
+            status.textContent = 'Choose a library folder…';
             try {
-                const result = await localApi('/api/library-folder-picker', { method: 'POST' });
+                const result = browserOnly
+                    ? await (await browserLibraryModule).chooseDirectory()
+                    : await localApi('/api/library-folder-picker', { method: 'POST' });
                 if (result.libraryPath) {
                     document.getElementById('libraryPath').value = result.libraryPath;
                     status.textContent = 'Folder selected. Click Save and Load Library to apply.';
                 } else { status.textContent = 'Folder selection cancelled.'; }
-            } catch (error) { status.textContent = error.message; }
+            } catch (error) { status.textContent = error.name === 'AbortError' ? 'Folder selection cancelled.' : error.message; }
             finally { button.disabled = false; }
         }
