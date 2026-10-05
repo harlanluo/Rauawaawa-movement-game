@@ -139,3 +139,36 @@ class TrackingTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class SeatedTrackingTests(unittest.TestCase):
+    def upper(self):
+        pose = person()
+        for index in range(23, 33):
+            pose[index]['visibility'] = 0.0
+        return pose
+
+    def test_seated_keeps_upper_body_without_hips_or_legs(self):
+        pose = self.upper()
+        self.assertIsNone(features(pose))
+        self.assertIsNotNone(features(pose, body_mode='seated'))
+        samples = [dict(timeMs=i*100, nearBlack=False, candidates=[pose]) for i in range(4)]
+        frames, _ = select_sequence(samples, body_mode='seated')
+        self.assertTrue(all(frame['landmarks'] == pose for frame in frames))
+
+    def test_seated_requires_shoulders_and_reliable_arm_joints(self):
+        pose = self.upper()
+        pose[11]['visibility'] = 0.1
+        self.assertIsNone(features(pose, body_mode='seated'))
+        pose = self.upper()
+        for index in (13,14,15,16):
+            pose[index]['visibility'] = 0.1
+        self.assertIsNone(features(pose, body_mode='seated'))
+
+    def test_seated_normalization_ignores_framing_and_hidden_lower_body(self):
+        a = self.upper()
+        b = copy.deepcopy(a)
+        for point in b:
+            point['x'] = point['x'] * 0.6 + 0.2
+            point['y'] = point['y'] * 0.6 + 0.1
+        self.assertAlmostEqual(pose_distance(features(a, body_mode='seated'), features(b, body_mode='seated')), 0)

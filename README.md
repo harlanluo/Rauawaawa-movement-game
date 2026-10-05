@@ -98,3 +98,31 @@ node --experimental-vm-modules --test --test-isolation=none tests/pose-compariso
 ```
 
 These tests use mock camera/model inputs; real webcam permission, detection quality, performance, and the hardware camera indicator still need device testing.
+
+
+## Local upload with movement scoring
+
+Use the Python extraction environment for the integrated upload preview:
+
+```powershell
+python -m venv tools/reference-pose/.venv
+tools/reference-pose/.venv/Scripts/python -m pip install -r tools/reference-pose/requirements.txt
+tools/reference-pose/.venv/Scripts/python tools/local_server.py
+```
+
+Open `http://127.0.0.1:8001/` in Chrome or Edge. Staff demo login is `staff` / `123`. Choose Add New Game → Upload Video, then Continue to Processing. The original video is sent only to the loopback server for the existing Python extraction algorithm; the browser simultaneously runs Josten's stylizer. Publish becomes available when both the MP4 and reference JSON are ready. Newly published games use their own movement reference for scoring. First extraction downloads the verified official Full pose model.
+
+The video stylizer outputs the first 60 seconds, at 15 FPS and up to 640 pixels wide. Reference sampling stays at 10 FPS with original timestamps and is restricted to that same first 60 seconds. Uploads are limited to 200 MB and one extraction at a time. The Python tool requires constant-frame-rate input; errors remain visible instead of publishing an unscored game. Cancel or navigation stops extraction. Temporary original files are removed after extraction; games and object URLs remain only for the current browser session. Staff recording uses the device camera, with optional microphone audio, a 60-second cap, preview/retake/download, and MP4 normalization before processing. Plain `python -m http.server` and static hosting do not provide the extraction API.
+
+Run API contract tests with `python -m unittest discover -s tests -p test_local_server.py`.
+
+
+Staff Record Video requests camera permission only when Start Recording is pressed. Microphone audio is opt-in. Stop, Retake, navigation and page exit release the camera. Completed recordings are previewable and downloadable, then Continue uses the same character conversion and movement-reference pipeline as uploads. Preparing the MP4 requires the CDN media library and Chrome/Edge WebCodecs. Tests: `node --test tests/video-recorder.test.mjs`.
+
+
+Choose Seated or Standing before processing an upload or recording. Seated reference extraction uses shoulder-centered, shoulder-width normalization and reliable shoulder/arm joints, without requiring visible hips or legs. Standing retains its full-body quality requirements. Publication keeps the selected mode so the reference and player scoring agree. Record duration can be shorter than 60 seconds.
+
+
+## Persistent local library
+
+Staff → Library Settings lets you configure an absolute local folder path. The default is `<repository>/local-games`; the selection persists in ignored `local-settings.json`. Saving a game writes only `video.mp4`, `reference-pose.json` and `game.json` into a numeric game subfolder. Page startup reads `/api/games` from disk. Editing a saved game updates its metadata; deletion moves its folder into `.trash` for recovery. Switching libraries loads the target folder without moving or removing previous files. Use the local server on port 8001; static hosting cannot access local disk. Older session-only games must be downloaded/reprocessed before refreshing the old page.

@@ -16,3 +16,7 @@ Desktop.ini
 # Python cache files
 __pycache__/
 *.py[cod]
+
+/local-games/
+/local-settings.json
+/local-settings.tmp

@@ -351,6 +351,11 @@ test('real app handlers release mock camera on Finish, Quit, navigation and page
         assert.equal(element('avatarSvg').dataset.pose, 'neutral');
         vm.runInContext('togglePlayerCamera()', context);
         for (let i = 0; i < 20 && h.callbacks.size === 0; i++) await new Promise(r => setImmediate(r));
+        assert.equal(vm.runInContext('isGamePaused', context), true);
+        assert.equal(element('btnPauseGame').innerText, 'Start');
+        assert.equal(h.callbacks.size, 0, 'preparation must not process or score movements');
+        vm.runInContext('togglePauseGame()', context);
+        assert.equal(element('btnPauseGame').innerText, 'Pause');
         assert.equal(h.callbacks.size, 1);
         assert.equal(h.streams.filter(s => s.getTracks()[0].readyState === 'live').length, 1);
     }

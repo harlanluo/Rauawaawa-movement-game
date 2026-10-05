@@ -15,29 +15,34 @@ BLACK_SETTINGS = dict(strategy='sustained-near-black-v1', maxMeanLuma=3,
                       maxBrightFraction=0.005, brightLuma=12, minDurationMs=500)
 
 
-def features(pose, aspect=1.0):
+def features(pose, aspect=1.0, body_mode='standing'):
+    if body_mode not in ('seated', 'standing'):
+        raise ValueError('Body mode must be seated or standing')
+    anchors = (11, 12) if body_mode == 'seated' else TORSO
+    joints = (11, 12, 13, 14, 15, 16) if body_mode == 'seated' else MAJOR
+    minimum = 4 if body_mode == 'seated' else SETTINGS['minReliableJoints']
     if len(pose) != 33 or any(not isinstance(p, dict) or any(
             not isinstance(p.get(a), (int, float)) or not math.isfinite(p[a])
             for a in ('x', 'y', 'z', 'visibility')) for p in pose):
         return None
-    if any(pose[i]['visibility'] < SETTINGS['minTorsoVisibility'] for i in TORSO):
+    if any(pose[i]['visibility'] < SETTINGS['minTorsoVisibility'] for i in anchors):
         return None
     if any(not 0 <= p['visibility'] <= 1 for p in pose):
         return None
-    visibility = [pose[i]['visibility'] for i in MAJOR]
-    quality = sum(visibility) / len(MAJOR)
+    visibility = [pose[i]['visibility'] for i in joints]
+    quality = sum(visibility) / len(joints)
     if (quality < SETTINGS['minMeanVisibility'] or
-            sum(v >= SETTINGS['minJointVisibility'] for v in visibility) < SETTINGS['minReliableJoints']):
+            sum(v >= SETTINGS['minJointVisibility'] for v in visibility) < minimum):
         return None
-    points = [(pose[i]['x'] * aspect, pose[i]['y']) for i in MAJOR]
+    points = [(pose[i]['x'] * aspect, pose[i]['y']) for i in joints]
     shoulder = tuple((points[0][k] + points[1][k]) / 2 for k in (0, 1))
-    hip = tuple((points[6][k] + points[7][k]) / 2 for k in (0, 1))
-    scale = math.dist(shoulder, hip)
+    hip = shoulder if body_mode == 'seated' else tuple((points[6][k] + points[7][k]) / 2 for k in (0, 1))
+    scale = math.dist(points[0], points[1]) if body_mode == 'seated' else math.dist(shoulder, hip)
     if scale < 0.03:
         return None
     normalized = [tuple((p[k] - hip[k]) / scale for k in (0, 1)) for p in points]
     return dict(pose=pose, center=hip, scale=scale, normalized=normalized,
-                visibility=visibility, quality=quality,
+                visibility=visibility, quality=quality, minReliableJoints=minimum,
                 key=tuple(p[a] for p in pose for a in ('x', 'y', 'z', 'visibility')))
 
 
@@ -46,7 +51,7 @@ def pose_distance(a, b):
     shared = [(p, q, min(v, w)) for p, q, v, w in zip(
         a['normalized'], b['normalized'], a['visibility'], b['visibility'])
         if min(v, w) >= SETTINGS['minJointVisibility']]
-    if len(shared) < SETTINGS['minReliableJoints']:
+    if len(shared) < max(a.get('minReliableJoints', 8), b.get('minReliableJoints', 8)):
         return math.inf
     return math.sqrt(sum(weight * math.dist(p, q)**2 for p, q, weight in shared)
                      / sum(weight for _, _, weight in shared))
@@ -76,7 +81,7 @@ def continuity_cost(previous, candidate, elapsed_ms, same_subject):
             + SETTINGS['sameSubjectWeight'] * preference)
 
 
-def select_sequence(samples, aspect=1.0):
+def select_sequence(samples, aspect=1.0, body_mode='standing'):
     """Bounded Viterbi search. Null states remember the last accepted pose.
 
     One deterministic initial anchor prevents the optimizer discarding a good
@@ -92,7 +97,7 @@ def select_sequence(samples, aspect=1.0):
             raise ValueError('Reference sample times must increase')
         previous_time = sample['timeMs']
         candidates = [] if sample['nearBlack'] else sample['candidates']
-        prepared.append(sorted((f for p in candidates if (f := features(p, aspect)) is not None),
+        prepared.append(sorted((f for p in candidates if (f := features(p, aspect, body_mode)) is not None),
                                key=lambda f: f['key']))
     # State: total cost, last accepted features/time, backpointer, output, reason.
     states = [(0.0, None, None, None, None, 'initial')]

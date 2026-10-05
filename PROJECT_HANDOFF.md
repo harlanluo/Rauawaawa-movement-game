@@ -376,3 +376,56 @@ Use recorded fixtures and real-device sessions to check the comparison threshold
 ## 18. Project continuation note
 
 Remaining work is intended to be shared among team members. This document exists so contributors can independently understand the current system, choose a track, and continue development without repeated verbal project explanations.
+
+
+## Local video stylizer integration (2026-10-05)
+
+Josten's `origin/feature/video_style` modules are integrated into Staff Upload Video → Processing → Publish. The embedded same-origin stylizer receives the selected File, displays live frame previews, and returns an MP4 Blob. Publishing assigns its object URL to the game, so gameplay uses the converted video. Navigating away unloads the processing iframe. Standalone `video_style/` remains available for downloads.
+
+Processing requires Chrome/Edge, network access for library/model downloads, and uses Josten's existing 60-second, 15-FPS, 640-pixel limits. The transformation is multiclass segmentation into red/blue silhouettes over a beach image. Uploaded games now receive their own reference-pose dataset from the local extraction API; the default video's reference data is never reused for them. Games and output URLs exist only in the current page session. Record Video remains simulated.
+
+Validation: 9 video stylizer tests and 29 existing pose/scoring/tracker tests passed; JavaScript syntax checks passed. Real-video conversion and uploaded movement extraction were subsequently verified together in the local browser.
+
+
+### Uploaded movement scoring (2026-10-05)
+
+`tools/local_server.py` serves the game on loopback port 8001 and provides asynchronous POST/GET/DELETE `/api/reference-pose` jobs. It invokes the existing extractor using the server Python interpreter; start it with the reference-pose virtual environment. The original uploaded File is processed by Python while the embedded stylizer runs independently in the browser. The publish button waits for both outputs, and new games point to their own reference JSON Blob URL. Original timestamps are preserved and samples are capped to the stylizer's first 60 seconds. Cancellation terminates the extractor subprocess. Non-local origins are rejected, inference concurrency is limited to one, and temporary uploads are deleted. This API is local-preview functionality and is not supported by static Netlify hosting.
+
+Validation: 38 JavaScript tests, 21 Python extraction/selection tests, and 4 HTTP API contract tests passed. A fresh real extraction of the existing exercise video generated 577 samples, 554 with poses (96.01%).
+
+Browser integration verification: the existing 57.7-second video produced 865 stylized frames with AAC audio copied; the movement guide completed and the publish button unlocked. The generated game appeared in the session library. Webcam-based live scoring still requires camera testing.
+
+
+### Real Staff recording (2026-10-05)
+
+Replaced the simulated Staff recorder with `js/video-recorder.js`: explicit camera start, optional microphone (off by default), hidden-until-start live preview, elapsed timer, 60-second automatic stop, recorded preview, retake and download. MediaRecorder captures WebM or MP4; Mediabunny/WebCodecs normalizes it to fixed 15-FPS MP4 before assigning it as the input File for the existing extraction/stylization flow. This avoids the Python extractor rejecting variable camera timestamps. Leaving, retake and page exit invalidate pending operations and stop tracks; late permission grants are released. Live gameplay camera behavior is unchanged.
+
+Validation: 4 mocked recorder lifecycle/permission tests and 24 related tracking/stylizer tests passed. Real device permission, recording quality and browser transcoding require manual webcam testing.
+
+
+### Mode-aware uploaded and recorded reference extraction (2026-10-05)
+
+Upload and Record screens now offer Seated/Standing before processing. The local API validates `X-Body-Mode` and passes `--body-mode` to the Python extractor. Seated selection uses shoulders as anchors, shoulder width as scale, six shoulder/elbow/wrist joints for quality, and at least four reliable shared upper-body joints for continuity. Hips and legs are not part of seated quality or continuity; standing defaults are preserved. Metadata records mode and normalization. Publish locks the mode to the one used during extraction. Empty-result errors now describe this clip and mode-specific framing instead of saying "first 60 seconds".
+
+Validation: 24 Python selection/validation tests, 4 API tests (including seated header propagation), and 33 scoring/tracker/recorder JavaScript tests passed. New tests cover missing hips/legs, shoulder/arm quality rejection, and seated framing invariance. Local server restarted on port 8001.
+
+
+### Manual game start (2026-10-05)
+
+Entering any game, Retry or Next now opens a paused preparation screen at time zero with a Start button. Players can position themselves and optionally enable the camera before playback and pose inference/scoring resume on Start. Later pauses still use Resume. Lifecycle tests assert that preparation schedules no inference callbacks and Start resumes the enabled camera.
+
+
+### Configurable persistent local library (2026-10-05)
+
+`tools/local_server.py` now exposes GET/POST `/api/settings`, GET/POST `/api/games`, and POST/DELETE `/api/games/<id>`. Default storage is ignored `local-games/`, configured path is persisted in ignored `local-settings.json`. Publishing stores original/converted MP4, reference JSON and metadata in a complete staged folder before committing it. Saved games are discovered from disk at page startup; editing is persisted and deleting moves the folder to a hidden `.trash`. The stable `/local-games/` URL maps to the configured folder even outside the checkout, with path traversal rejected. Staff dashboard includes Library Settings with the current path and save/load feedback. Switching directories leaves old files in place. Built-in prototype games still remain in memory; newly published games are persistent.
+
+Validation: 6 HTTP tests passed, including saving, fresh disk listing, serving the saved video, editing, recoverable deletion, folder switching and config persistence; 15 tracking lifecycle tests passed. Browser verification confirmed path saving and reload success for the default folder. Current pre-update browser games are not automatically migrated.
+
+
+Staff library settings now includes Choose Folder. Its same-origin local endpoint opens a native Windows FolderBrowserDialog via a fixed PowerShell script; the current folder is passed through an environment variable. Selection fills the field, cancellation leaves it unchanged, and Save and Load applies it separately. Concurrent picker requests are rejected. Seven local API tests passed, including selection/cancel and origin checks.
+
+
+Privacy update (2026-10-05): published libraries no longer store original footage. The frontend omits the original file from publication requests and the backend ignores legacy original payloads. Only converted video, reference data and metadata remain. One existing original.mp4 was removed from the configured library, including a scan of hidden trash folders. Extraction still uses a temporary input file, deleted when the extraction job exits. Seven API tests passed, including no-original persistence.
+
+
+Library folders now use game names instead of numeric IDs. Windows-invalid characters are replaced, reserved names are prefixed, duplicates gain numbered suffixes, and editing names renames folders. Stable numeric media URLs resolve through stored metadata so renamed games remain playable. Existing numeric folders migrate when listed; moves are checked to remain in the configured library. Nine API/storage tests passed.

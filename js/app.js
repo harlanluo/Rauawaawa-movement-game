@@ -7,10 +7,86 @@
         let currentGameNumber = 1;
         let isGameRunning = false;
         let isGamePaused = false;
+        let isGameReady = false;
         let isFullscreenActive = false;
         let currentScore = 0;
         let nextGameId = 7;
         let selectedVideoFileName = '';
+        let selectedVideoFile = null;
+        let processedVideoSrc = null;
+        let processedReferenceSrc = null;
+        let extractionMode = 'Standing';
+        let extractionController = null;
+        let extractionJobId = null;
+        let processingFailed = false;
+
+        function updateProcessingReady() {
+            document.getElementById('processingContinueBtn').disabled =
+                processingFailed || !processedVideoSrc || !processedReferenceSrc;
+        }
+
+        function stopExtraction() {
+            extractionController?.abort();
+            extractionController = null;
+            if (extractionJobId) {
+                fetch(`/api/reference-pose/${extractionJobId}`, { method: 'DELETE', keepalive: true }).catch(() => {});
+                extractionJobId = null;
+            }
+        }
+
+        async function extractUploadedMovement(file) {
+            stopExtraction();
+            const controller = new AbortController();
+            extractionController = controller;
+            const status = document.getElementById('extractionStatus');
+            status.textContent = 'Extracting movement from the original video…';
+            let jobId = null;
+            try {
+                const response = await fetch('/api/reference-pose', {
+                    method: 'POST', body: file, signal: controller.signal,
+                    headers: { 'X-Body-Mode': extractionMode.toLowerCase() }
+                });
+                if (!response.ok) {
+                    let detail = 'Open the local game on port 8001 to enable movement extraction.';
+                    try { detail = (await response.json()).error || detail; } catch {}
+                    throw new Error(detail);
+                }
+                jobId = (await response.json()).id;
+                if (controller.signal.aborted) return;
+                extractionJobId = jobId;
+                while (!controller.signal.aborted) {
+                    const poll = await fetch(`/api/reference-pose/${jobId}`, { signal: controller.signal });
+                    const job = await poll.json();
+                    if (!poll.ok || job.state === 'failed' || job.state === 'cancelled') {
+                        throw new Error(job.error || 'Movement extraction stopped.');
+                    }
+                    if (job.state === 'complete') {
+                        processedReferenceSrc = URL.createObjectURL(new Blob([JSON.stringify(job.reference)], { type: 'application/json' }));
+                        status.textContent = 'Movement guide ready — scoring enabled for this video.';
+                        extractionJobId = null;
+                        updateProcessingReady();
+                        return;
+                    }
+                    await new Promise(resolve => {
+                        const onAbort = () => { clearTimeout(timer); resolve(); };
+                        const timer = setTimeout(() => {
+                            controller.signal.removeEventListener('abort', onAbort);
+                            resolve();
+                        }, 1000);
+                        controller.signal.addEventListener('abort', onAbort, { once: true });
+                    });
+                }
+            } catch (error) {
+                if (controller.signal.aborted) return;
+                processingFailed = true;
+                status.textContent = `Movement extraction failed: ${error.message}. Cancel and try again.`;
+                updateProcessingReady();
+            } finally {
+                if (controller.signal.aborted && jobId) {
+                    fetch(`/api/reference-pose/${jobId}`, { method: 'DELETE', keepalive: true }).catch(() => {});
+                }
+            }
+        }
         let recordingInterval = null;
         let recordingSeconds = 0;
         let processingInterval = null;
@@ -247,10 +323,22 @@
             getLatestLandmarks: () => poseTracker?.getLatestLandmarks() || null,
             getDiagnostics: () => poseTracker?.getDiagnostics() || { state: 'not-loaded' }
         });
-        window.addEventListener('pagehide', () => stopGameSession());
+        window.addEventListener('pagehide', () => { stopGameSession(); stopExtraction(); ++recorderLoadToken; staffRecorder?.reset(); });
 
         // Screen Navigation
         function goToScreen(screenId) {
+            if (screenId !== 'screen-record-video') {
+                ++recorderLoadToken;
+                staffRecorder?.reset();
+            }
+            if (screenId !== 'screen-processing') {
+                stopExtraction();
+                clearInterval(processingInterval);
+                const processingFrame = document.getElementById('stylizerFrame');
+                if (processingFrame.getAttribute('src') && processingFrame.getAttribute('src') !== 'about:blank') {
+                    processingFrame.src = 'about:blank';
+                }
+            }
             clearVoiceFocus();
             stopGameSession();
 
@@ -317,10 +405,14 @@
             resetMovementScore();
 
             isGameRunning = true;
-            isGamePaused = false;
-            btnPauseGame.innerText = 'Pause';
-            pauseOverlay.classList.remove('active');
-            avatarSvg.classList.remove('paused');
+            isGamePaused = true;
+            isGameReady = true;
+            btnPauseGame.innerText = 'Start';
+            btnPauseGame.style.background = '#00E676';
+            document.getElementById('pauseOverlayTitle').textContent = 'Ready when you are';
+            document.getElementById('pauseOverlayHint').textContent = 'Get comfortable, turn the camera on, then press Start';
+            pauseOverlay.classList.add('active');
+            avatarSvg.classList.add('paused');
             avatarPose.setMode(currentMode);
             setPosePreview(false);
             void preparePoseScoring(selectedGame);
@@ -334,12 +426,11 @@
             videoEl.playbackRate = 1;
             videoEl.currentTime = 0;
             updateVideoTimeline();
-            videoEl.play().catch(e => {
-                console.log('Video play triggered:', e);
-            });
+            videoEl.pause();
+            updateMovementFeedback('Get ready — press Start when comfortable');
 
             if (isVoiceMode) {
-                speak(`Starting ${currentMode} ${selectedGameName}. Let's move!`);
+                speak(`${currentMode} ${selectedGameName}. Get ready, then press Start.`);
             }
         }
 
@@ -394,11 +485,15 @@
                 updateMovementFeedback('Game paused');
                 videoEl.pause();
                 avatarSvg.classList.add('paused');
+                document.getElementById('pauseOverlayTitle').textContent = '⏸️ GAME PAUSED';
+                document.getElementById('pauseOverlayHint').textContent = 'Press Resume when you are ready';
                 pauseOverlay.classList.add('active');
                 btnPauseGame.innerText = 'Resume';
                 btnPauseGame.style.background = '#00E676';
                 if (isVoiceMode) speak("Game Paused");
             } else {
+                const firstStart = isGameReady;
+                isGameReady = false;
                 videoEl.play().catch(e => console.log(e));
                 if (cameraEnabled) poseTracker?.resumeProcessing();
                 updateMovementFeedback(cameraEnabled ? 'Follow the movement' : 'Turn camera on to score');
@@ -406,7 +501,7 @@
                 pauseOverlay.classList.remove('active');
                 btnPauseGame.innerText = 'Pause';
                 btnPauseGame.style.background = 'var(--color-pause)';
-                if (isVoiceMode) speak("Game Resumed");
+                if (isVoiceMode) speak(firstStart ? "Let's move!" : "Game Resumed");
             }
         }
 
@@ -514,7 +609,7 @@
 
         function logoutStaff() {
             clearInterval(processingInterval);
-            resetSimulatedRecording();
+            resetRecording();
             selectedVideoFileName = '';
             document.getElementById('staffLoginForm').reset();
             document.getElementById('staffLoginMessage').textContent = '';
@@ -583,12 +678,21 @@
             document.getElementById('editGameName').focus();
         }
 
-        function saveGameEdit(event) {
+        async function saveGameEdit(event) {
             event.preventDefault();
             const gameId = Number(document.getElementById('editGameId').value);
             const game = gameLibrary.find(item => item.id === gameId);
             if (!game) return;
 
+            if (game.persistent) {
+                try {
+                    Object.assign(game, await localApi(`/api/games/${game.id}`, { method: 'POST', body: JSON.stringify({
+                        name: document.getElementById('editGameName').value.trim(),
+                        mode: document.getElementById('editGameMode').value,
+                        description: document.getElementById('editGameDescription').value.trim()
+                    }) }));
+                } catch (error) { document.getElementById('libraryStatusMessage').textContent = error.message; return; }
+            }
             game.name = document.getElementById('editGameName').value.trim();
             game.mode = document.getElementById('editGameMode').value;
             game.description = document.getElementById('editGameDescription').value.trim();
@@ -601,12 +705,16 @@
             document.getElementById('editGamePanel').classList.remove('active');
         }
 
-        function deleteGame(gameId) {
+        async function deleteGame(gameId) {
             const gameIndex = gameLibrary.findIndex(item => item.id === gameId);
             if (gameIndex < 0) return;
             const gameName = gameLibrary[gameIndex].name;
-            if (!window.confirm(`Delete “${gameName}” from this prototype session?`)) return;
+            if (!window.confirm(`Delete “${gameName}” from the library?`)) return;
 
+            if (gameLibrary[gameIndex].persistent) {
+                try { await localApi(`/api/games/${gameId}`, { method: 'DELETE' }); }
+                catch (error) { document.getElementById('libraryStatusMessage').textContent = error.message; return; }
+            }
             gameLibrary.splice(gameIndex, 1);
             cancelGameEdit();
             renderStaffGameLibrary();
@@ -615,11 +723,13 @@
 
         function openAddGame() {
             clearInterval(processingInterval);
-            resetSimulatedRecording();
+            resetRecording();
             goToScreen('screen-add-game');
         }
 
         function openUploadVideo() {
+            selectedVideoFile = null;
+            processedVideoSrc = null;
             selectedVideoFileName = '';
             document.getElementById('videoFileInput').value = '';
             document.getElementById('selectedVideoName').textContent = 'No file selected';
@@ -629,6 +739,8 @@
 
         function handleVideoFileSelected(event) {
             const file = event.target.files[0];
+            selectedVideoFile = file || null;
+            processedVideoSrc = null;
             selectedVideoFileName = file ? file.name : '';
             document.getElementById('selectedVideoName').textContent = file
                 ? `Selected: ${file.name}`
@@ -637,8 +749,10 @@
         }
 
         function openRecordVideo() {
+            selectedVideoFile = null;
+            processedVideoSrc = null;
             selectedVideoFileName = '';
-            resetSimulatedRecording();
+            resetRecording();
             goToScreen('screen-record-video');
         }
 
@@ -648,52 +762,60 @@
             return `${mins}:${secs}`;
         }
 
-        function startSimulatedRecording() {
-            clearInterval(recordingInterval);
-            recordingSeconds = 0;
-            document.getElementById('recordTimer').textContent = '00:00';
-            document.getElementById('recordStatus').textContent = 'Simulated capture in progress';
-            document.getElementById('recordingIndicator').classList.add('active');
-            document.getElementById('startRecordBtn').disabled = true;
-            document.getElementById('stopRecordBtn').disabled = false;
-            document.getElementById('retakeRecordBtn').disabled = true;
-            document.getElementById('recordContinueBtn').disabled = true;
+        let staffRecorder = null;
+        let recorderLoadToken = 0;
 
-            recordingInterval = setInterval(() => {
-                recordingSeconds++;
-                document.getElementById('recordTimer').textContent = formatRecordingTime(recordingSeconds);
-            }, 1000);
+        function renderRecordingState(state, message) {
+            document.getElementById('recordStatus').textContent = message;
+            document.getElementById('recordingIndicator').classList.toggle('active', state === 'recording');
+            document.getElementById('startRecordBtn').disabled = !['idle', 'error'].includes(state);
+            document.getElementById('stopRecordBtn').disabled = state !== 'recording';
+            document.getElementById('retakeRecordBtn').disabled = state === 'idle';
+            document.getElementById('recordContinueBtn').disabled = state !== 'ready';
+            document.getElementById('recordAudio').disabled = ['starting', 'recording', 'saving'].includes(state);
+            if (state !== 'ready') document.getElementById('recordDownload').hidden = true;
         }
 
-        function stopSimulatedRecording() {
-            if (recordingSeconds === 0) recordingSeconds = 1;
-            clearInterval(recordingInterval);
-            document.getElementById('recordTimer').textContent = formatRecordingTime(recordingSeconds);
-            document.getElementById('recordStatus').textContent = 'Simulated recording ready';
-            document.getElementById('recordingIndicator').classList.remove('active');
-            document.getElementById('stopRecordBtn').disabled = true;
-            document.getElementById('retakeRecordBtn').disabled = false;
-            document.getElementById('recordContinueBtn').disabled = false;
+        async function startRecording() {
+            const request = ++recorderLoadToken;
+            renderRecordingState('starting', 'Preparing camera…');
+            try {
+                const module = await import('./video-recorder.js');
+                if (request !== recorderLoadToken) return;
+                staffRecorder ??= module.createVideoRecorder({
+                    video: document.getElementById('recordVideoPreview'),
+                    onState: renderRecordingState,
+                    onTime: seconds => { document.getElementById('recordTimer').textContent = formatRecordingTime(seconds); },
+                    normalize: module.normalizeRecording,
+                    onComplete(file, url) {
+                        selectedVideoFile = file;
+                        selectedVideoFileName = file.name;
+                        const download = document.getElementById('recordDownload');
+                        download.href = url; download.download = file.name; download.hidden = false;
+                    }
+                });
+                await staffRecorder.start({ audio: document.getElementById('recordAudio').checked });
+            } catch (error) { renderRecordingState('error', error.message); }
         }
 
-        function resetSimulatedRecording() {
-            clearInterval(recordingInterval);
-            recordingSeconds = 0;
+        function stopRecording() { staffRecorder?.stop(); }
+
+        function resetRecording() {
+            ++recorderLoadToken;
+            staffRecorder?.reset();
+            selectedVideoFile = null;
+            selectedVideoFileName = '';
             document.getElementById('recordTimer').textContent = '00:00';
-            document.getElementById('recordStatus').textContent = 'Ready to record';
-            document.getElementById('recordingIndicator').classList.remove('active');
-            document.getElementById('startRecordBtn').disabled = false;
-            document.getElementById('stopRecordBtn').disabled = true;
-            document.getElementById('retakeRecordBtn').disabled = true;
-            document.getElementById('recordContinueBtn').disabled = true;
+            renderRecordingState('idle', 'Ready to record');
         }
 
         function leaveRecordScreen() {
-            resetSimulatedRecording();
+            resetRecording();
             goToScreen('screen-add-game');
         }
 
         function beginProcessing(sourceLabel) {
+            extractionMode = document.getElementById(sourceLabel === 'Recorded video' ? 'recordBodyMode' : 'uploadBodyMode').value;
             clearInterval(processingInterval);
             let progress = 0;
             const progressBar = document.getElementById('processingProgress');
@@ -707,6 +829,18 @@
             continueButton.disabled = true;
             goToScreen('screen-processing');
 
+            const frame = document.getElementById('stylizerFrame');
+            frame.hidden = !selectedVideoFile;
+            progressTrack.hidden = !!selectedVideoFile;
+            document.querySelector('.processing-steps').hidden = !!selectedVideoFile;
+            if (selectedVideoFile) {
+                processedVideoSrc = null;
+                processedReferenceSrc = null;
+                processingFailed = false;
+                extractUploadedMovement(selectedVideoFile);
+                frame.src = 'video_style/index.html?embedded=1';
+                return;
+            }
             processingInterval = setInterval(() => {
                 progress = Math.min(progress + 5, 100);
                 progressBar.style.width = `${progress}%`;
@@ -723,6 +857,8 @@
         }
 
         function cancelProcessing() {
+            document.getElementById('stylizerFrame').src = 'about:blank';
+            processedVideoSrc = null;
             clearInterval(processingInterval);
             goToScreen('screen-add-game');
         }
@@ -732,27 +868,47 @@
                 ? selectedVideoFileName.replace(/\.[^.]+$/, '')
                 : 'New Recorded Game';
             document.getElementById('publishGameForm').reset();
+            document.getElementById('publishGameMode').value = selectedVideoFile ? extractionMode : 'Seated';
+            document.getElementById('publishGameMode').disabled = !!selectedVideoFile;
             document.getElementById('publishGameName').value = defaultName;
             document.getElementById('publishMessage').textContent = '';
             goToScreen('screen-publish-game');
         }
 
-        function publishGame(event) {
+        async function publishGame(event) {
             event.preventDefault();
+            if (selectedVideoFile && (!processedVideoSrc || !processedReferenceSrc || processingFailed)) {
+                document.getElementById('publishMessage').textContent = 'Complete video and movement processing first.';
+                return;
+            }
             const name = document.getElementById('publishGameName').value.trim();
             if (!name) {
                 document.getElementById('publishMessage').textContent = 'Please enter a game name.';
                 return;
             }
 
-            gameLibrary.push({
-                id: nextGameId++,
-                name,
-                mode: document.getElementById('publishGameMode').value,
-                description: document.getElementById('publishGameDescription').value.trim(),
-                videoSrc: DEFAULT_VIDEO_SRC,
-                referencePoseSrc: DEFAULT_REFERENCE_POSE_SRC
-            });
+            const button = event.target.querySelector('button[type="submit"]');
+            button.disabled = true;
+            document.getElementById('publishMessage').textContent = 'Saving video and movement guide to your local library…';
+            try {
+                const payload = {
+                    name, mode: document.getElementById('publishGameMode').value,
+                    description: document.getElementById('publishGameDescription').value.trim(),
+                    videoSrc: DEFAULT_VIDEO_SRC, referencePoseSrc: DEFAULT_REFERENCE_POSE_SRC
+                };
+                if (processedVideoSrc) {
+                    const [video, reference] = await Promise.all([
+                        fetch(processedVideoSrc).then(r => r.blob()), fetch(processedReferenceSrc).then(r => r.json())
+                    ]);
+                    payload.video = await blobBase64(video);
+                    payload.reference = reference;
+                }
+                const game = await localApi('/api/games', { method: 'POST', body: JSON.stringify(payload) });
+                gameLibrary.push(game);
+            } catch (error) {
+                document.getElementById('publishMessage').textContent = `Could not save: ${error.message}. Try again.`;
+                return;
+            } finally { button.disabled = false; }
             selectedVideoFileName = '';
             openStaffLibrary();
             document.getElementById('libraryStatusMessage').textContent = `${name} published to the prototype library.`;
@@ -972,4 +1128,90 @@
             }
 
             draw();
+        }
+
+        window.addEventListener('message', event => {
+            const frame = document.getElementById('stylizerFrame');
+            if (event.origin !== location.origin || event.source !== frame.contentWindow || event.data?.source !== 'video-stylizer') return;
+            if (!document.getElementById('screen-processing').classList.contains('active')) return;
+            if (event.data.type === 'ready' && selectedVideoFile) {
+                frame.contentWindow.postMessage({ type: 'stylize', file: selectedVideoFile }, location.origin);
+            } else if (event.data.type === 'status') {
+                document.getElementById('processingTitle').textContent = event.data.message;
+            } else if (event.data.type === 'complete' && event.data.blob instanceof Blob) {
+                processedVideoSrc = URL.createObjectURL(event.data.blob);
+                updateProcessingReady();
+            }
+        });
+
+        async function localApi(url, options = {}) {
+            const response = await fetch(url, options);
+            if (!response.headers.get('content-type')?.includes('application/json')) {
+                throw new Error('Local storage requires the local app server on port 8001. Use the Open local library version link below.');
+            }
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.error || 'Local library unavailable');
+            return data;
+        }
+        function blobBase64(blob) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result.split(',')[1]);
+                reader.onerror = () => reject(new Error('Could not read video data'));
+                reader.readAsDataURL(blob);
+            });
+        }
+        async function loadLocalLibrary() {
+            const { games } = await localApi('/api/games');
+            for (let index = gameLibrary.length - 1; index >= 0; index--) {
+                if (gameLibrary[index].persistent) gameLibrary.splice(index, 1);
+            }
+            gameLibrary.push(...games);
+            renderKaumatuaGameLibrary();
+            renderStaffGameLibrary();
+        }
+        async function openLibrarySettings() {
+            goToScreen('screen-library-settings');
+            const localLink = document.getElementById('libraryServerLink');
+            localLink.href = `http://127.0.0.1:8001/${location.search}`;
+            localLink.hidden = location.port === '8001';
+            try {
+                const settings = await localApi('/api/settings');
+                document.getElementById('libraryPath').value = settings.libraryPath;
+                document.getElementById('librarySettingsStatus').textContent = '';
+            } catch (error) { document.getElementById('librarySettingsStatus').textContent = error.message; }
+        }
+        async function saveLibrarySettings(event) {
+            event.preventDefault();
+            const status = document.getElementById('librarySettingsStatus');
+            const button = event.target.querySelector('button[type="submit"]');
+            button.disabled = true;
+            try {
+                const settings = await localApi('/api/settings', { method: 'POST', body: JSON.stringify({
+                    libraryPath: document.getElementById('libraryPath').value
+                }) });
+                referencePoseCache.clear();
+                await loadLocalLibrary();
+                status.textContent = `Library loaded from ${settings.libraryPath}`;
+            } catch (error) { status.textContent = `Could not change library: ${error.message}`; }
+            finally { button.disabled = false; }
+        }
+        if (typeof fetch === 'function') loadLocalLibrary().catch(error => {
+            console.warn('Local library could not load', error);
+            document.getElementById('libraryStatusMessage').textContent = 'Local library unavailable. Check the local server.';
+        });
+
+        async function chooseLibraryFolder() {
+            const button = document.getElementById('chooseLibraryFolderBtn');
+            const status = document.getElementById('librarySettingsStatus');
+            button.disabled = true;
+            status.textContent = 'Choose a folder in the Windows dialog…';
+            try {
+                const result = await localApi('/api/library-folder-picker', { method: 'POST' });
+                if (result.libraryPath) {
+                    document.getElementById('libraryPath').value = result.libraryPath;
+                    status.textContent = 'Folder selected. Click Save and Load Library to apply.';
+                } else { status.textContent = 'Folder selection cancelled.'; }
+            } catch (error) { status.textContent = error.message; }
+            finally { button.disabled = false; }
         }

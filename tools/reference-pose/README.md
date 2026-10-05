@@ -108,3 +108,6 @@ Coverage is substantially more continuous, especially in the former 14.433-18.33
 Side-facing arm drift, hand/foot errors and brief jitter remain. Rapid arm changes still merit manual QA before scoring. Geometry cannot prove semantic exercise correctness, synchronization or identity through camera cuts; not every harmful discontinuity is guaranteed to be removed. The intended input is a stable-camera video of synchronized exercise.
 
 Remaining missing exercise spans (first-last sample): 14.533; 14.733-14.833; 15.433; 15.633-16.233; 16.633; 17.233; 17.433-17.533; 20.733; 22.833-23.133; 23.333-23.633; 23.933-24.033; 28.133-28.433; 37.633; 38.733 s. The longest is seven detector-empty samples at 15.633-16.233 s: 0.600 s sampled span, about 0.7 s of sampled coverage. The black tail retains all 155 nulls and an empty overlay.
+
+
+Use `--body-mode seated` for upper-body seated footage; default is `standing`. Seated extraction requires reliable shoulders and arm joints without requiring hips or legs. The JSON records the selected mode in `subjectTracking.bodyMode`. Select the same mode in gameplay.

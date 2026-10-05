@@ -1427,3 +1427,6 @@
     max-height: 65%;
     overflow: auto;
 }
+
+/* Respect hidden state for processing steps and embedded previews. */
+[hidden] { display: none !important; }

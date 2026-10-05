@@ -20,7 +20,7 @@ def sha256(path):
         return hashlib.file_digest(stream, 'sha256').hexdigest()
 
 
-def extract(source, output, fps, model, debug=None):
+def extract(source, output, fps, model, debug=None, body_mode='standing'):
     import cv2
     import mediapipe as mp
 
@@ -91,11 +91,13 @@ def extract(source, output, fps, model, debug=None):
         if count == 0 or (expected_count > 0 and count != expected_count):
             raise ValueError(f'Incomplete decode: {count} frames, expected {expected_count}')
         duration = count * 1000 / source_fps
-        frames, selection_reasons = select_sequence(samples, width / height)
+        frames, selection_reasons = select_sequence(samples, width / height, body_mode)
         reasons = Counter(selection_reasons)
         usable, inactive = coverage([frame['timeMs'] for frame in frames], black, duration)
         data = {'formatVersion': 1, 'sourceVideo': source.as_posix(),
-                'subjectTracking': SETTINGS,
+                'subjectTracking': {**SETTINGS, 'bodyMode': body_mode,
+                    'normalization': 'shoulder-center-width' if body_mode == 'seated' else 'hip-center-torso',
+                    'minReliableJoints': 4 if body_mode == 'seated' else 8},
                 'coverage': {**BLACK_SETTINGS, 'rangeConvention': 'start-inclusive-end-exclusive',
                              'inactiveRanges': inactive}, 'usableRanges': usable,
                 'sourceSha256': sha256(source),
@@ -135,8 +137,9 @@ if __name__ == '__main__':
     parser.add_argument('--input', required=True, type=Path)
     parser.add_argument('--output', required=True, type=Path)
     parser.add_argument('--fps', type=float, default=10)
+    parser.add_argument('--body-mode', choices=['seated', 'standing'], default='standing')
     parser.add_argument('--debug', type=Path, help='Optional candidate diagnostics; do not commit')
     parser.add_argument('--model', type=Path, default=Path(__file__).with_name('pose_landmarker_full.task'),
                         help='Cached official Full float16 model; downloaded if absent')
     args = parser.parse_args()
-    extract(args.input, args.output, args.fps, args.model, args.debug)
+    extract(args.input, args.output, args.fps, args.model, args.debug, args.body_mode)
