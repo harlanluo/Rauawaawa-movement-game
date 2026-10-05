@@ -4,15 +4,15 @@
 
 ### 🎮 Movement Game Prototype
 
-[Open Movement Game Prototype](https://team-koru.netlify.app/)
+[Open Movement Game Prototype](https://teamkoru.netlify.app/)
 
 ### 🦴 Reference Pose Visualizer
 
-[Open Reference Pose Visualizer](https://team-koru.netlify.app/tools/reference-pose/visualizer.html)
+[Open Reference Pose Visualizer](https://teamkoru.netlify.app/tools/reference-pose/visualizer.html)
 
 ### 📷 Camera Pose Tracking Demo
 
-[Open Camera Pose Tracking Demo](https://team-koru.netlify.app/camera_pose_demo/camera_pose_test.html)
+[Open Camera Pose Tracking Demo](https://teamkoru.netlify.app/camera_pose_demo/camera_pose_test.html)
 
 The MediaPipe camera prototype remains separate from the main movement game and does not yet provide reference-video comparison or final game scoring.
 
