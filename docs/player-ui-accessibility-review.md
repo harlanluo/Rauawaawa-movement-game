@@ -27,6 +27,12 @@ The enlarged playlist header now reserves its actual height. The first card rema
 
 ## Verification
 
+### Title centering and scale follow-up
+
+Following baseline `10f50682c8a7a9f2a71038fb5143dd96e79ffedb`, the playlist header uses equal outer grid columns so its title is centered on the viewport rather than the unequal space between Guidance and Home. At 2471×1238 its title center was within 0.1px of the viewport center. At widths up to 1100px the title gets its own full-width row. Start and mode titles now use 64–96px desktop / 56px narrow typography; their content groups sit slightly above the vertical center. The results heading uses 64–96px desktop / 44px narrow, with 44–56px desktop / 40px narrow buttons, minimum heights 120px / 112px. Narrow results buttons stack.
+
+Screenshots were inspected at 2471×1238 (matching the supplied wide image), 1440×900, 1024×600 and 390×844 across the affected pages. Short-screen mode content starts below corner controls instead of being centered upward into them: final tablet heading top 200px, language controls bottom 172px. The mode container grows downward when necessary. No horizontal overflow was observed in the narrow results or tablet mode checks. Existing game controls and behavior are preserved. The full suite was rerun with 58 passes and no failures; whitespace checks passed.
+
 Actual localhost browser screenshots were inspected at wide desktop, ordinary desktop, landscape tablet and narrow-phone settings: 2560×1080, 1440×900, 1024×600 and 390×844. Browser zoom/scaling can make the CSS viewport differ from the requested screenshot size: the final ordinary-desktop capture reported a 1309×818 CSS viewport, with title 51.64px, score number 53.09px and Resume 39.85px. Its document width equals its CSS viewport width. The wide capture showed 64px title and score number, 44px game controls and a centered proportional stage with visible margins.
 
 At the narrow check, title was 40px, score number 48px and Back 28px with an 80px target. The playlist first item, ready hint, localized dialog actions and results were reachable without horizontal overflow. The landscape-tablet check kept title 44px and game controls 32px, including Camera immediately after playback; it needed approximately 62px of vertical scrolling. This is an intentional consequence of retaining large controls and usable video content on short screens. Avatar split mode and returning to video-only were checked. The two hidden status bars stayed absent.

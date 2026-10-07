@@ -1649,3 +1649,47 @@
 .home-mode-btn:hover, .game-controls-bar .ctrl-btn:hover, .win-btn:hover { transform: none; }
 
 @media (max-width: 700px) { .win-title { font-size: 2.5rem; hyphens: auto; } }
+
+/* Keep page titles centered on the viewport, independent of corner controls. */
+#screen-playlist .screen-top-bar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) minmax(0, 1fr);
+    align-items: start;
+}
+#screen-playlist .screen-top-bar .player-language-controls { grid-column: 1; grid-row: 1; justify-self: start; max-width: 100%; }
+#screen-playlist .screen-top-bar .player-page-title { grid-column: 2; grid-row: 1; width: 100%; text-align: center; }
+#screen-playlist .screen-top-bar .player-nav-btn { grid-column: 3; grid-row: 1; justify-self: end; margin: 0; }
+
+#screen-start .role-heading, #screen-home .home-heading {
+    font-size: clamp(4rem, 3rem + 2.5vw, 6rem);
+    line-height: 1.15;
+    text-align: center;
+    margin: 0;
+}
+#screen-start .role-content {
+    justify-content: safe center;
+    padding-top: 180px;
+    padding-bottom: 230px;
+    gap: 32px;
+}
+#screen-home.active { align-items: flex-start; }
+#screen-home .home-content { width: 100%; min-height: 100%; justify-content: safe center; padding-top: 200px; padding-bottom: 280px; }
+.win-title { font-size: clamp(4rem, 3rem + 2.5vw, 6rem); }
+.win-btn { font-size: clamp(2.75rem, 2rem + 1.2vw, 3.5rem); min-height: 120px; min-width: 260px; padding: 16px 32px; }
+.win-box { gap: 28px; }
+
+@media (max-width: 1100px) {
+    #screen-playlist .screen-top-bar { grid-template-columns: minmax(0, 1fr) auto; }
+    #screen-playlist .screen-top-bar .player-page-title { grid-column: 1 / -1; grid-row: 2; }
+    #screen-playlist .screen-top-bar .player-nav-btn { grid-column: 2; }
+}
+@media (max-width: 700px) {
+    #screen-start .role-heading, #screen-home .home-heading, .win-title { font-size: 3.5rem; }
+    .win-title { font-size: 2.75rem; }
+    #screen-start .role-heading-line { white-space: normal; }
+    #screen-start .role-content { padding-top: 270px; padding-bottom: 160px; }
+    #screen-home .home-content { padding-top: 270px; padding-bottom: 48px; }
+    .win-btn { font-size: 2.5rem; min-height: 112px; min-width: 0; width: 100%; }
+    .win-btn-layout, .win-btn-row { width: 100%; }
+    .win-btn-row { flex-direction: column; gap: 20px; }
+}
