@@ -1,4 +1,4 @@
-# Rauawaawa Kaumātua Movement Game Prototype
+# Kaumātua Movement Game Prototype
 
 ## Live Demos
 
