@@ -67,7 +67,7 @@ Architecture rules:
 - Seated and standing prototype categories.
 - Six in-memory prototype game entries.
 - Staff prototype screens for login, library editing, video selection/recording simulation, processing simulation, and publishing to the current browser session.
-- Voice Guidance with English / Māori selection, reselection, explicit OFF and return focus. English remains available; Māori speech awaits separately reviewed script/voice resources.
+- Voice Guidance with English / Māori selection, reselection, explicit OFF and return focus. English remains available; Māori is selectable directly and uses a device mi/mi-NZ voice when available; otherwise text prompts remain available without substituting an English voice.
 - Single selected-language player rendering with an English / Māori switch directly below Voice Guidance. English defaults on refresh; navigation, Retry and Next retain the session choice. Māori selection displays draft wording for review without approving it. Staff remains English. See `docs/player-language-review.md`.
 - Video-only Full Screen on every fresh game/Retry/Next. Show User Avatar changes layout only; no camera permission, score reset or native browser fullscreen entry.
 - Large wrapping selected-language controls; shorter screens scroll instead of clipping labels or shrinking touch targets.
@@ -143,7 +143,7 @@ The current lower-resolution video produces 577 samples: 554 selected and 23 mis
 - The UI reports Good, Almost, Keep moving, insufficient visibility, and temporary reference-gap states below the avatar.
 - Camera-off time, missing reference windows, and insufficient player visibility do not add score samples.
 - Seeking/dragging, ready, pause and ended states award no points. `resetTransient()` clears latest comparison without clearing the bucket Map. Capture context (camera/session plus seek generation), tracker callback invalidation and fresh inference protect landing references; no model reload or permission request on seek. Replay can improve old checkpoints, forward seek never fills skipped checkpoints, and paused seek preserves intent.
-- Controlled tests in `tests/player-language.test.cjs` cover selected-language rendering, written/voice independence, switch confirmation and focus reset, voice selection/cancellation/reselection, delayed unapproved voices, Staff exclusions and navigation cleanup. Extended tracker/scoring tests cover pointer/native seeks, stale captures, replay bests and gaps. Browser/device verification limits are recorded in `docs/player-verification.md`.
+- Controlled tests in `tests/player-language.test.cjs` cover selected-language rendering, written/voice independence, switch confirmation and focus reset, voice selection/cancellation/reselection, delayed device Māori voices and missing-voice selection, Staff exclusions and navigation cleanup. Extended tracker/scoring tests cover pointer/native seeks, stale captures, replay bests and gaps. Browser/device verification limits are recorded in `docs/player-verification.md`.
 - Reference JSON is loaded once and cached in the browser; the demonstration video is still not analysed live.
 - `tools/pose-comparison/visualizer.html` demonstrates the gameplay comparison engine with the stored reference timeline and either a controllable simulated pose or the same live local camera tracker used by the game. It shows framing normalization, body-mode requirements, overall similarity, and per-feature scores.
 

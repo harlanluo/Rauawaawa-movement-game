@@ -1448,6 +1448,8 @@
         #voiceLanguageDialog button { min-height: 88px; padding: 16px; margin: 6px; border-radius: 14px; font-size: 26px; }
         .voice-language-choices { display: flex; flex-wrap: wrap; }
         .voice-language-choices button { flex: 1 1 200px; }
+        .voice-language-choices button[aria-pressed="true"] { background: #d3eee7; border: 3px solid #007e83; }
+        .voice-language-choices button[aria-pressed="true"]::after { content: ' ✓'; }
         button:focus-visible, input:focus-visible, select:focus-visible { outline: 4px solid #8a4900; outline-offset: 3px; }
 
 

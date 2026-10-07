@@ -1,4 +1,4 @@
-/* Written wording and voice delivery require separate Rauawaawa approval. */
+/* Review metadata records wording quality; it does not gate player features. */
 const PlayerLanguage = (() => {
     const resources = {};
     // Session preference: navigation/Retry/Next retain it; refresh defaults to English.
@@ -69,9 +69,9 @@ const PlayerLanguage = (() => {
     }
     function speech(key, language, values) {
         const resource = entry(key);
-        if (language === 'mi' && (resource.status !== 'approved' || resource.speechStatus !== 'approved')) return null;
+        if (language === 'mi' && !resource.speechMi && !resource.mi) return null;
         return substitute(language === 'mi' ? resource.speechMi || resource.mi : resource.speechEn || resource.en, values);
     }
-    return { resources, voiceResources: { mi: { approvedVoiceNames: [] } }, entry, lines, selected, render,
+    return { resources, entry, lines, selected, render,
         renderAccessibleLabel, renderSwitch, setLanguage, speech, get interfaceLanguage() { return interfaceLanguage; } };
 })();

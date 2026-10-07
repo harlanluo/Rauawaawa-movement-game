@@ -1055,8 +1055,8 @@
             clearVoiceFocus();
             document.getElementById('voiceLanguageDialog').showModal();
             document.getElementById('voiceEnglish').focus();
-            // One English introduction includes both options; global cancellation cannot drop option two.
-            speak('Choose voice language. English. Māori. Māori speech awaits approval. Choose English for spoken guidance.');
+            renderMaoriVoiceNotice();
+            speak('Choose voice language. English. Māori.');
         }
         function closeVoicePanel(returnFocus = true) {
             const dialog = document.getElementById('voiceLanguageDialog');
@@ -1066,16 +1066,13 @@
         }
         function selectVoiceLanguage(language) {
             clearVoiceFocus();
-            if (language === 'mi' && !maoriSpeechAvailable()) {
-                PlayerLanguage.render(document.getElementById('maoriVoiceNotice'), 'Māori speech awaits approval. Choose English for spoken guidance.');
-                speak('Māori speech awaits approval. Choose English for spoken guidance.');
-                return; // No automatic English fallback or false Māori activation.
-            }
             voiceLanguage = language;
             isVoiceMode = true;
             renderVoiceState();
             closeVoicePanel();
-            speak('Voice Guidance Mode Enabled. Tap any button once to hear its name, tap again to activate.');
+            speak(voiceLanguage === 'mi' && !preferredMaoriVoice
+                ? 'No Māori voice is available on this device. You can select Māori with text prompts, or choose English for audio.'
+                : 'Voice Guidance Mode Enabled. Tap any button once to hear its name, tap again to activate.');
         }
         function turnVoiceOff() {
             isVoiceMode = false;
@@ -1148,17 +1145,16 @@
         // English Voice selector for robust cross-device compatibility (iPad, Android, Windows, Mac)
         let preferredEnglishVoice = null;
         let preferredMaoriVoice = null;
-        // Add reviewed voice identities only after separate pronunciation approval.
-        const approvedMaoriVoiceNames = PlayerLanguage.voiceResources.mi.approvedVoiceNames;
-        function maoriSpeechAvailable() {
-            return Boolean(preferredMaoriVoice && Object.values(PlayerLanguage.resources)
-                .every(resource => resource.status === 'approved' && resource.speechStatus === 'approved' && resource.speechMi));
+        function renderMaoriVoiceNotice() {
+            const notice = document.getElementById('maoriVoiceNotice');
+            notice.hidden = Boolean(preferredMaoriVoice);
+            if (!notice.hidden) PlayerLanguage.render(notice, 'No Māori voice is available on this device. You can select Māori with text prompts, or choose English for audio.');
         }
 
         function initEnglishVoice() {
             if ('speechSynthesis' in window) {
                 const voices = window.speechSynthesis.getVoices();
-                preferredMaoriVoice = voices.find(voice => /^mi(?:-|$)/i.test(voice.lang) && approvedMaoriVoiceNames.includes(voice.name)) || null;
+                preferredMaoriVoice = voices.find(voice => /^mi(?:-|$)/i.test(voice.lang)) || null;
                 if (voices && voices.length > 0) {
                     // Priority: en-NZ > en-AU > en-GB > en-US > any English voice
                     preferredEnglishVoice = voices.find(v => v.lang === 'en-NZ') ||
@@ -1168,6 +1164,7 @@
                                            voices.find(v => v.lang && v.lang.toLowerCase().startsWith('en'));
                 }
             }
+            renderMaoriVoiceNotice();
         }
 
         if ('speechSynthesis' in window) {
@@ -1189,7 +1186,7 @@
         function speak(key, showSub = true, values = {}) {
             const text = PlayerLanguage.speech(key, voiceLanguage, values);
             if (!text) {
-                if (showSub) showSubtitle('Māori speech awaits approval. Choose English for spoken guidance.');
+                if (showSub) showSubtitle(key);
                 return;
             }
             const token = ++speechGeneration;
@@ -1199,6 +1196,10 @@
             }
             if ('speechSynthesis' in window) {
                 window.speechSynthesis.cancel(); // Cancel any ongoing speech
+                if (voiceLanguage === 'mi' && !preferredMaoriVoice) {
+                    if (showSub && !currentFocusedButton) subtitleTimer = setTimeout(hideSubtitle, 6000);
+                    return; // Keep Māori selected; never substitute an English voice.
+                }
 
                 // Ensure English words for all digits
                 const spokenText = voiceLanguage === 'mi' ? text : formatTextForEnglishSpeech(text);

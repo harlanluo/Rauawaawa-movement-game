@@ -102,7 +102,7 @@ test('interface switch is bilingual, independent of voice and clears confirmatio
     h.run("handleAccessibleClick(document.getElementById('languageToggle'), toggleInterfaceLanguage)");
     assert.equal(h.run('PlayerLanguage.interfaceLanguage'), 'mi');
     assert.equal(h.run('isVoiceMode'), false);
-    assert.equal(h.run("PlayerLanguage.speech('Start', 'mi')"), null);
+    assert.equal(h.run("PlayerLanguage.speech('Start', 'mi')"), 'Tīmata te kēmu.');
     h.run("selectVoiceLanguage('en'); handleAccessibleClick(document.getElementById('languageToggle'), toggleInterfaceLanguage)");
     assert.equal(h.run('PlayerLanguage.interfaceLanguage'), 'mi');
     assert.match(h.spoken.at(-1).text, /Interface language: Māori.*English/);
@@ -173,10 +173,10 @@ test('voice OFF opens selection; cancellation preserves OFF; English enables con
     assert.equal(h.element('voiceLanguageDialog').open, false);
 });
 
-test('written approval alone cannot enable Māori speech; dynamic feedback retains focus values', () => {
+test('review status does not block Māori scripts; dynamic feedback retains focus values', () => {
     const h = harness();
     h.run("PlayerLanguage.resources.Start.status = 'approved'");
-    assert.equal(h.run("PlayerLanguage.speech('Start', 'mi')"), null);
+    assert.equal(h.run("PlayerLanguage.speech('Start', 'mi')"), 'Tīmata te kēmu.');
     h.run("PlayerLanguage.resources.Start.speechStatus = 'approved'");
     assert.equal(h.run("PlayerLanguage.speech('Start', 'mi')"), 'Tīmata te kēmu.');
     h.run("updateMovementFeedback('Almost - adjust your {focus}', 'almost', { focus: 'left arm bend', focusMi: 'piko ringa mauī' })");
@@ -186,20 +186,44 @@ test('written approval alone cannot enable Māori speech; dynamic feedback retai
     assert.doesNotMatch(h.element('movementFeedback').textContent, /left arm bend/);
 });
 
-test('delayed Māori-tagged voice is insufficient approval and never silently enables English fallback', () => {
+test('Māori is selectable without a voice; a delayed Māori voice enables audio without approval', () => {
     const h = harness();
     h.run("toggleVoiceMode(); selectVoiceLanguage('mi')");
-    assert.equal(h.run('isVoiceMode'), false);
-    assert.equal(h.element('voiceLanguageDialog').open, true);
-    h.setVoices([{ name: 'Unreviewed Māori', lang: 'mi-NZ' }, { name: 'NZ English', lang: 'en-NZ' }]);
-    h.speechSynthesis.onvoiceschanged();
-    h.run("selectVoiceLanguage('mi')");
-    assert.equal(h.run('isVoiceMode'), false);
-    assert.equal(h.run('preferredMaoriVoice'), null);
-    assert.match(h.element('maoriVoiceNotice').textContent, /awaits approval/);
-    h.run("selectVoiceLanguage('en')");
     assert.equal(h.run('isVoiceMode'), true);
+    assert.equal(h.run('voiceLanguage'), 'mi');
+    assert.equal(h.element('voiceLanguageDialog').open, false);
+    assert.match(h.element('voice-subtitle').textContent, /No Māori voice/);
+    const count = h.spoken.length;
+    h.run("speak('Start')");
+    assert.equal(h.spoken.length, count);
+    h.setVoices([{ name: 'Device Māori', lang: 'mi-NZ' }, { name: 'NZ English', lang: 'en-NZ' }]);
+    h.speechSynthesis.onvoiceschanged();
+    assert.equal(h.element('maoriVoiceNotice').hidden, true);
+    assert.equal(h.run('voiceLanguage'), 'mi');
+    h.run("speak('Start')");
+    assert.equal(h.spoken.at(-1).text, 'Tīmata te kēmu.');
+    assert.equal(h.spoken.at(-1).voice.name, 'Device Māori');
+    assert.equal(h.spoken.at(-1).lang, 'mi-NZ');
+    assert.equal(h.run('PlayerLanguage.resources.Start.status'), 'draft');
+    h.run("selectVoiceLanguage('en')");
     assert.equal(h.spoken.at(-1).voice.name, 'NZ English');
+});
+
+test('Māori audio retains two-click confirmation and never reads editorial notes', () => {
+    const h = harness();
+    h.setVoices([{name: 'Māori device voice', lang: 'mi'}]);
+    h.speechSynthesis.onvoiceschanged();
+    h.run("selectVoiceLanguage('mi'); globalThis.actions = 0; PlayerLanguage.render(document.getElementById('btnPauseGame'), 'Start')");
+    h.run("handleAccessibleClick(document.getElementById('btnPauseGame'), () => actions++)");
+    assert.equal(h.run('actions'), 0);
+    assert.match(h.spoken.at(-1).text, /Tīmata te kēmu.*Pāwhiritia anō/);
+    assert.equal(h.spoken.at(-1).lang, 'mi');
+    h.run("handleAccessibleClick(document.getElementById('btnPauseGame'), () => actions++)");
+    assert.equal(h.run('actions'), 1);
+    for (const key of ['Full Screen', 'Split Screen', '{gameName}']) {
+        const text = h.run(`PlayerLanguage.speech(${JSON.stringify(key)}, 'mi', {gameName:'Demo'})`);
+        assert.doesNotMatch(text, /Button:|Announcement:|Translation|requires.*review/);
+    }
 });
 
 test('language choices use two-click confirmation when ON; Staff actions stay direct and silent', () => {
