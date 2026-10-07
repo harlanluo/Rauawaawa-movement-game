@@ -285,6 +285,10 @@
                 ? 'Cancel Camera Start' : active ? 'Turn Camera Off' : 'Turn Camera On');
             cameraToggle.setAttribute('aria-pressed', String(cameraEnabled));
             cameraToggle.setAttribute('data-speech', PlayerLanguage.entry(cameraToggle.dataset.languageKey).speechEn);
+            const cameraError = document.getElementById('cameraError');
+            cameraError.hidden = state !== 'unavailable';
+            if (!cameraError.hidden) PlayerLanguage.render(cameraError, message);
+            cameraToggle.setAttribute('aria-describedby', cameraError.hidden ? '' : 'cameraError');
         }
 
         function stopPlayerTracking() {
@@ -424,6 +428,8 @@
                 button.className = 'game-grid-btn accessible-target';
                 button.setAttribute('aria-label', game.name);
                 const name = document.createElement('span');
+                name.id = `game-name-${game.id}`;
+                button.setAttribute('aria-labelledby', name.id);
                 renderGameMetadata(name, game, 'name', game.name);
                 button.appendChild(name);
                 if (game.description) {
@@ -448,6 +454,9 @@
             } else {
                 delete element.dataset.languageKey;
                 element.textContent = game?.[field] || fallback;
+                element.lang = 'en';
+                element.setAttribute('aria-label', element.textContent);
+                element.setAttribute('title', element.textContent);
             }
         }
 
@@ -506,6 +515,9 @@
         }
 
         function updateVideoTimeline() {
+            if (videoEl.videoWidth > 0 && videoEl.videoHeight > 0) {
+                document.getElementById('gameStage').style.setProperty?.('--video-aspect-ratio', String(videoEl.videoWidth / videoEl.videoHeight));
+            }
             const duration = Number.isFinite(videoEl.duration) && videoEl.duration > 0
                 ? videoEl.duration
                 : 0;
@@ -1024,6 +1036,11 @@
         /* ---------------------------------------------------- */
         let subtitleTimer = null;
 
+        function toggleInterfaceLanguage() {
+            clearVoiceFocus();
+            PlayerLanguage.setLanguage(PlayerLanguage.interfaceLanguage === 'en' ? 'mi' : 'en');
+        }
+
         function renderVoiceState() {
             document.querySelectorAll('.voice-icon-btn').forEach(button => {
                 button.classList.toggle('active', isVoiceMode);
@@ -1086,18 +1103,18 @@
                 currentFocusedButton = element;
                 element.classList.add('voice-focused');
 
-                const key = element.dataset.languageKey;
+                const key = element.dataset.speechKey || element.dataset.languageKey;
                 const speechPrompt = key ? PlayerLanguage.speech(key, voiceLanguage, element._languageValues) : element.getAttribute('data-speech') || element.innerText.trim();
                 const guidanceMessage = `${speechPrompt || element.getAttribute('data-speech')}. ${PlayerLanguage.speech('Tap again to confirm.', voiceLanguage) || 'Tap again to confirm.'}`;
 
                 const subtitleKey = `prompt:${key || speechPrompt}`;
                 const resource = PlayerLanguage.entry(key || speechPrompt);
                 PlayerLanguage.resources[subtitleKey] = {
-                    en: guidanceMessage,
+                    en: `${resource.speechEn || resource.en}. ${PlayerLanguage.entry('Tap again to confirm.').en}`,
                     mi: resource.mi ? `${resource.speechMi || resource.mi} ${PlayerLanguage.entry('Tap again to confirm.').mi}` : '',
                     status: resource.status, speechStatus: resource.speechStatus, speechEn: guidanceMessage
                 };
-                speak(subtitleKey);
+                speak(subtitleKey, true, element._languageValues);
             }
         }
 
@@ -1377,7 +1394,7 @@
         }
 
         document.querySelectorAll('[data-language-key]').forEach(element => PlayerLanguage.render(element, element.dataset.languageKey));
-        document.getElementById('draftLanguagePreview').checked = PlayerLanguage.preview;
+        PlayerLanguage.setLanguage('en');
         document.getElementById('voiceLanguageDialog').addEventListener('cancel', event => {
             event.preventDefault(); closeVoicePanel();
         });

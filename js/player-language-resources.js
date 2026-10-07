@@ -769,16 +769,6 @@ Object.assign(PlayerLanguage.resources, {
         "context": "Player interface / dynamic state",
         "speechStatus": "draft"
     },
-    "Preview draft Māori text": {
-        "en": "Preview draft Māori text",
-        "mi": "Tirohia te tauira reo Māori",
-        "speechEn": "Preview draft Māori text",
-        "speechMi": "Tirohia te tauira reo Māori",
-        "status": "draft",
-        "source": "AI proposal; requires review",
-        "context": "Player interface / dynamic state",
-        "speechStatus": "draft"
-    },
     "Draft Māori wording awaits Rauawaawa review.": {
         "en": "Draft Māori wording awaits Rauawaawa review.",
         "mi": "Kei te tatari ngā kupu tauira reo Māori kia arotakengia e Rauawaawa.",
@@ -1058,5 +1048,35 @@ Object.assign(PlayerLanguage.resources, {
         "source": "AI proposal; requires review",
         "context": "Dynamic movement focus feedback",
         "speechStatus": "draft"
+    },
+    "Interface language: {language}. Switch to {nextLanguage}.": {
+        "en": "Interface language: {language}. Switch to {nextLanguage}.",
+        "mi": "Reo whakaatu: {language}. Hurihia ki {nextLanguage}.",
+        "speechEn": "Interface language: {language}. Switch to {nextLanguage}.",
+        "speechMi": "Reo whakaatu: {language}. Hurihia ki {nextLanguage}.",
+        "status": "draft",
+        "speechStatus": "draft",
+        "source": "AI proposal; requires review",
+        "context": "Follow-up interface language / accessible description"
+    },
+    "Movement Game": {
+        "en": "Movement Game",
+        "mi": "Kēmu Korikori",
+        "speechEn": "Movement Game",
+        "speechMi": "Kēmu Korikori",
+        "status": "draft",
+        "speechStatus": "draft",
+        "source": "AI proposal; requires review",
+        "context": "Follow-up interface language / accessible description"
+    },
+    "Your movement avatar": {
+        "en": "Your movement avatar",
+        "mi": "Tō whakaahua matihiko korikori",
+        "speechEn": "Your movement avatar",
+        "speechMi": "Tō whakaahua matihiko korikori",
+        "status": "draft",
+        "speechStatus": "draft",
+        "source": "AI proposal; requires review",
+        "context": "Follow-up interface language / accessible description"
     }
 });

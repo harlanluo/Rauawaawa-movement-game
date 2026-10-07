@@ -24,16 +24,19 @@
         <div id="screen-start" class="screen active">
             <div class="start-top">
                 <div class="home-brand">Kaumātua Wellness</div>
-                <button class="voice-icon-btn start-voice-btn player-voice-btn accessible-target"
-                        data-speech="Toggle Voice Guidance Mode"
-                        aria-pressed="false"
-                        onclick="handleAccessibleClick(this, toggleVoiceMode)">
-                    <span>Voice Guidance: <span class="voice-state">OFF</span></span>
-                </button>
+                <div class="player-language-controls">
+                    <button class="voice-icon-btn start-voice-btn player-voice-btn accessible-target"
+                            data-speech="Toggle Voice Guidance Mode"
+                            aria-pressed="false"
+                            onclick="handleAccessibleClick(this, toggleVoiceMode)">
+                        <span>Voice Guidance: <span class="voice-state">OFF</span></span>
+                    </button>
+                    <button type="button" class="interface-language-btn accessible-target" data-interface-language-switch
+                            onclick="handleAccessibleClick(this, toggleInterfaceLanguage)">English / Māori</button>
+                </div>
             </div>
             <div class="role-content">
-                <h1 class="role-heading">Kaumātua<br><span class="role-heading-line">Movement Game</span></h1>
-                <label class="draft-language-option"><input id="draftLanguagePreview" type="checkbox" onchange="PlayerLanguage.setPreview(this.checked)"><span data-language-key="Preview draft Māori text">Preview draft Māori text</span></label>
+                <h1 class="role-heading">Kaumātua<br><span class="role-heading-line" data-language-key="Movement Game">Movement Game</span></h1>
                 <p class="language-review-note" data-language-key="Draft Māori wording awaits Rauawaawa review.">Draft Māori wording awaits Rauawaawa review.</p>
                 <div class="role-options">
                     <button class="role-btn role-kaumatua role-primary accessible-target"
@@ -59,12 +62,16 @@
                 <div class="home-brand">
                     Kaumātua Wellness
                 </div>
-                <button class="voice-icon-btn home-voice-btn player-voice-btn accessible-target"
-                        data-speech="Toggle Voice Guidance Mode"
-                        aria-pressed="false"
-                        onclick="handleAccessibleClick(this, toggleVoiceMode)">
-                    <span>Voice Guidance: <span class="voice-state">OFF</span></span>
-                </button>
+                <div class="player-language-controls">
+                    <button class="voice-icon-btn home-voice-btn player-voice-btn accessible-target"
+                            data-speech="Toggle Voice Guidance Mode"
+                            aria-pressed="false"
+                            onclick="handleAccessibleClick(this, toggleVoiceMode)">
+                        <span>Voice Guidance: <span class="voice-state">OFF</span></span>
+                    </button>
+                    <button type="button" class="interface-language-btn accessible-target" data-interface-language-switch
+                            onclick="handleAccessibleClick(this, toggleInterfaceLanguage)">English / Māori</button>
+                </div>
                 <button class="home-icon-btn player-nav-btn accessible-target"
                         data-speech="Back to start page"
                         onclick="handleAccessibleClick(this, () => goToScreen('screen-start'))" data-language-key="Back">
@@ -97,12 +104,16 @@
         <!-- ======================================================== -->
         <div id="screen-playlist" class="screen">
             <div class="screen-top-bar">
-                <button class="voice-icon-btn player-voice-btn accessible-target"
-                        data-speech="Voice Guidance switch"
-                        aria-pressed="false"
-                        onclick="handleAccessibleClick(this, toggleVoiceMode)" data-language-key="Voice: OFF">
-                    <span class="voice-text-badge">Voice: OFF</span>
-                </button>
+                <div class="player-language-controls">
+                    <button class="voice-icon-btn player-voice-btn accessible-target"
+                            data-speech="Voice Guidance switch"
+                            aria-pressed="false"
+                            onclick="handleAccessibleClick(this, toggleVoiceMode)" data-language-key="Voice: OFF">
+                        <span class="voice-text-badge">Voice: OFF</span>
+                    </button>
+                    <button type="button" class="interface-language-btn accessible-target" data-interface-language-switch
+                            onclick="handleAccessibleClick(this, toggleInterfaceLanguage)">English / Māori</button>
+                </div>
 
                 <div id="playlistHeaderTitle" class="screen-title player-page-title" data-language-key="Seated Playlist">Seated Playlist</div>
 
@@ -125,12 +136,16 @@
             <!-- Top Status Bar -->
             <div class="game-header-bar">
                 <div class="game-header-left">
-                    <button class="voice-icon-btn player-voice-btn accessible-target"
-                            data-speech="Voice Guidance switch"
-                            aria-pressed="false"
-                            onclick="handleAccessibleClick(this, toggleVoiceMode)" data-language-key="Voice: OFF">
-                        <span class="voice-text-badge">Voice: OFF</span>
-                    </button>
+                    <div class="player-language-controls">
+                        <button class="voice-icon-btn player-voice-btn accessible-target"
+                                data-speech="Voice Guidance switch"
+                                aria-pressed="false"
+                                onclick="handleAccessibleClick(this, toggleVoiceMode)" data-language-key="Voice: OFF">
+                            <span class="voice-text-badge">Voice: OFF</span>
+                        </button>
+                        <button type="button" class="interface-language-btn accessible-target" data-interface-language-switch
+                                onclick="handleAccessibleClick(this, toggleInterfaceLanguage)">English / Māori</button>
+                    </div>
                 </div>
 
                 <div id="gameTitleDisplay" class="game-title-display">Game</div>
@@ -155,7 +170,7 @@
                         <canvas id="posePreviewCanvas" class="pose-camera-preview" width="640" height="480" hidden aria-label="Camera and pose debug preview"></canvas>
 
                         <!-- Continuously articulated player avatar. -->
-                        <svg id="avatarSvg" class="avatar-figure" data-pose="neutral" viewBox="-25 -10 250 330" fill="none" aria-label="Your movement avatar" role="img" xmlns="http://www.w3.org/2000/svg">
+                        <svg id="avatarSvg" class="avatar-figure" data-pose="neutral" viewBox="-25 -10 250 330" fill="none" aria-label="Your movement avatar" data-language-aria-label="Your movement avatar" role="img" xmlns="http://www.w3.org/2000/svg">
                             <polygon id="avatarTorso" class="avatar-torso" points="72,88 128,88 118,184 82,184" />
                             <g class="avatar-limbs">
                                 <line id="leftUpperArm" x1="72" y1="96" x2="48" y2="142" />
@@ -207,10 +222,10 @@
 
             </div>
 
-            <div id="movementFeedback" class="movement-feedback" role="status" aria-live="polite" data-rating="idle" data-language-key="Turn camera on to score">Turn camera on to score</div>
-            <div id="trackingStatus" class="tracking-status" role="status" aria-live="polite" data-state="stopped" data-language-key="Camera off">Camera off</div>
+            <div id="movementFeedback" class="movement-feedback sr-only" aria-live="off" data-rating="idle" data-language-key="Turn camera on to score">Turn camera on to score</div>
+            <div id="trackingStatus" class="tracking-status sr-only" aria-live="off" data-state="stopped" data-language-key="Camera off">Camera off</div>
             <!-- Video Timeline -->
-            <div class="video-timeline" aria-label="Video playback controls">
+            <div class="video-timeline" aria-label="Video playback controls" data-language-aria-label="Video playback controls">
                 <span id="videoCurrentTime" class="timeline-time">00:00</span>
                 <label for="videoProgress" class="sr-only" data-language-key="Video progress">Video progress</label>
                 <input id="videoProgress"
@@ -220,12 +235,12 @@
                        max="1"
                        step="0.1"
                        value="0"
-                       aria-label="Video progress"
+                       aria-label="Video progress" data-language-aria-label="Video progress"
                        disabled>
                 <span id="videoDuration" class="timeline-time">00:00</span>
                 <label for="playbackSpeed" class="speed-control">
                     <span data-language-key="Speed:">Speed:</span>
-                    <select id="playbackSpeed" aria-label="Playback speed">
+                    <select id="playbackSpeed" aria-label="Playback speed" data-language-aria-label="Playback speed">
                         <option value="0.5">0.5x</option>
                         <option value="0.75">0.75x</option>
                         <option value="1" selected>1x</option>
@@ -251,9 +266,12 @@
                     Pause
                 </button>
 
+                <div class="camera-control-group">
                 <button id="cameraToggle" type="button" class="ctrl-btn camera-toggle accessible-target"
                         aria-pressed="false" data-speech="Turn camera on"
                         onclick="handleAccessibleClick(this, togglePlayerCamera)" data-language-key="Turn Camera On">Turn Camera On</button>
+                    <span id="cameraError" class="camera-error" role="status" aria-live="polite" hidden></span>
+                </div>
 
                 <button id="btnFullscreenToggle" class="ctrl-btn ctrl-fullscreen accessible-target"
                         data-speech="Toggle Full Screen view"
@@ -553,8 +571,8 @@
             <h2 id="voiceLanguageTitle" data-language-key="Choose voice language">Choose voice language</h2>
             <p id="maoriVoiceNotice" role="status" data-language-key="Māori speech awaits approval. Choose English for spoken guidance.">Māori speech awaits approval. Choose English for spoken guidance.</p>
             <div class="voice-language-choices">
-                <button id="voiceEnglish" class="accessible-target" data-language-key="English" onclick="handleAccessibleClick(this, () => selectVoiceLanguage('en'))">English</button>
-                <button id="voiceMaori" class="accessible-target" data-language-key="Māori" onclick="handleAccessibleClick(this, () => selectVoiceLanguage('mi'))">Māori</button>
+                <button id="voiceEnglish" lang="en" class="accessible-target" data-speech="English" onclick="handleAccessibleClick(this, () => selectVoiceLanguage('en'))">English</button>
+                <button id="voiceMaori" lang="mi" class="accessible-target" data-speech="Māori" onclick="handleAccessibleClick(this, () => selectVoiceLanguage('mi'))">Māori</button>
             </div>
             <button class="accessible-target" data-language-key="Turn Voice Guidance Off" onclick="handleAccessibleClick(this, turnVoiceOff)">Turn Voice Guidance Off</button>
             <button class="accessible-target" data-language-key="Close" onclick="handleAccessibleClick(this, closeVoicePanel)">Close</button>

@@ -50,7 +50,9 @@ function harness(search = '') {
         getElementById: element, createElement: tag => new Element('', tag),
         get activeElement() { return focused; },
         querySelectorAll: selector => selector === '.voice-icon-btn' ? [voiceButton]
-            : selector === '[data-language-key]' ? [...nodes.values()].filter(node => node.dataset.languageKey) : []
+            : selector === '[data-language-key]' ? [...nodes.values()].filter(node => node.dataset.languageKey)
+            : selector === '[data-interface-language-switch]' ? [...nodes.values()].filter(node => node.dataset.interfaceLanguageSwitch !== undefined)
+            : selector === '[data-language-aria-label]' ? [...nodes.values()].filter(node => node.dataset.languageAriaLabel) : []
     };
     const speechSynthesis = { getVoices: () => voices, cancel: () => cancellations++, speak: utterance => spoken.push(utterance) };
     const context = vm.createContext({ document, window: { speechSynthesis, addEventListener() {} },
@@ -71,25 +73,81 @@ function harness(search = '') {
         focused: () => focused };
 }
 
-test('draft preview opt-in renders Māori above English and survives dynamic updates', () => {
+test('one selected interface language renders accessible labels and survives dynamic updates', () => {
     const h = harness();
     h.run("PlayerLanguage.render(document.getElementById('btnPauseGame'), 'Start')");
     const button = h.element('btnPauseGame');
     assert.deepEqual(button.children.map(child => child.lang), ['en']);
-    h.run('PlayerLanguage.setPreview(true)');
-    assert.deepEqual(button.children.map(child => child.lang), ['mi', 'en']);
+    h.run("PlayerLanguage.setLanguage('mi')");
+    assert.deepEqual(button.children.map(child => child.lang), ['mi']);
+    assert.equal(button.getAttribute('aria-label'), 'Tīmata');
     h.run("PlayerLanguage.render(document.getElementById('btnPauseGame'), 'Resume')");
     assert.equal(button.children[0].textContent, 'Haere Tonu');
-    assert.equal(button.children[1].textContent, 'Resume');
+    assert.equal(button.children.length, 1);
+    assert.equal(button.getAttribute('aria-label'), 'Haere Tonu');
     assert.equal(button.getAttribute('data-speech'), 'Resume the game');
-    h.run('PlayerLanguage.setPreview(false)');
+    h.run("PlayerLanguage.setLanguage('en')");
     assert.deepEqual(button.children.map(child => child.lang), ['en']);
     h.run("PlayerLanguage.render(document.getElementById('btnPauseGame'), 'Unreviewed user title')");
     assert.equal(button.textContent, 'Unreviewed user title');
 });
 
+test('interface switch is bilingual, independent of voice and clears confirmation state', () => {
+    const h = harness();
+    const button = h.element('languageToggle');
+    button.dataset.interfaceLanguageSwitch = '';
+    h.run("PlayerLanguage.setLanguage('en')");
+    assert.equal(button.textContent, 'English / Māori');
+    assert.equal(button.getAttribute('aria-pressed'), 'false');
+    h.run("handleAccessibleClick(document.getElementById('languageToggle'), toggleInterfaceLanguage)");
+    assert.equal(h.run('PlayerLanguage.interfaceLanguage'), 'mi');
+    assert.equal(h.run('isVoiceMode'), false);
+    assert.equal(h.run("PlayerLanguage.speech('Start', 'mi')"), null);
+    h.run("selectVoiceLanguage('en'); handleAccessibleClick(document.getElementById('languageToggle'), toggleInterfaceLanguage)");
+    assert.equal(h.run('PlayerLanguage.interfaceLanguage'), 'mi');
+    assert.match(h.spoken.at(-1).text, /Interface language: Māori.*English/);
+    h.run("handleAccessibleClick(document.getElementById('languageToggle'), toggleInterfaceLanguage)");
+    assert.equal(h.run('PlayerLanguage.interfaceLanguage'), 'en');
+    assert.equal(h.run('voiceLanguage'), 'en');
+    assert.equal(h.run('currentFocusedButton'), null);
+    assert.equal(h.element('voice-subtitle').style.display, 'none');
+    assert.equal(button.children.length, 3);
+});
+
+test('language survives navigation, localizes nontext labels and excludes Staff', () => {
+    const h = harness();
+    const timeline = h.element('videoProgress');
+    timeline.dataset.languageAriaLabel = 'Speed';
+    const staff = h.element('staffBack');
+    staff.staff = true; staff.dataset.languageKey = 'Back'; staff.textContent = 'Back';
+    h.run("PlayerLanguage.setLanguage('mi'); goToScreen('screen-home')");
+    assert.equal(h.run('PlayerLanguage.interfaceLanguage'), 'mi');
+    assert.equal(timeline.getAttribute('aria-label'), 'Tere');
+    assert.equal(staff.textContent, 'Back');
+    h.run("PlayerLanguage.render(document.getElementById('btnPauseGame'), 'Unknown source text')");
+    assert.equal(h.element('btnPauseGame').lang, 'en');
+    assert.equal(h.element('btnPauseGame').textContent, 'Unknown source text');
+    h.run("PlayerLanguage.setLanguage('invalid')");
+    assert.equal(h.run('PlayerLanguage.interfaceLanguage'), 'en');
+});
+
+test('Camera error is discoverable only on failure and follows interface language', () => {
+    const h = harness();
+    h.run("updateTrackingStatus({state: 'stopped', message: 'Camera off'})");
+    assert.equal(h.element('cameraError').hidden, true);
+    h.run("updateTrackingStatus({state: 'unavailable', message: 'Camera access is off'})");
+    assert.equal(h.element('cameraError').hidden, false);
+    assert.equal(h.element('cameraToggle').getAttribute('aria-describedby'), 'cameraError');
+    h.run("PlayerLanguage.setLanguage('mi')");
+    assert.equal(h.element('cameraError').lang, 'mi');
+    assert.equal(h.element('cameraError').children.length, 1);
+    h.run("updateTrackingStatus({state: 'loading', message: 'Starting camera…'})");
+    assert.equal(h.element('cameraError').hidden, true);
+    assert.equal(h.element('cameraToggle').getAttribute('aria-describedby'), null);
+});
+
 test('voice OFF opens selection; cancellation preserves OFF; English enables confirmation', () => {
-    const h = harness('?draftLanguage=1');
+    const h = harness();
     h.voiceButton.focus();
     h.run('toggleVoiceMode()');
     assert.equal(h.element('voiceLanguageDialog').open, true);
@@ -105,7 +163,7 @@ test('voice OFF opens selection; cancellation preserves OFF; English enables con
     h.run("handleAccessibleClick(document.getElementById('btnPauseGame'), () => activations++)");
     assert.equal(h.run('activations'), 0);
     assert.equal(h.spoken.at(-1).text, 'Resume the game. Tap again to confirm.');
-    assert.equal(h.element('voice-subtitle').children[0].lang, 'mi');
+    assert.equal(h.element('voice-subtitle').children[0].lang, 'en');
     h.run("handleAccessibleClick(document.getElementById('btnPauseGame'), () => activations++)");
     assert.equal(h.run('activations'), 1);
     h.run('toggleVoiceMode(); closeVoicePanel()');
@@ -116,7 +174,7 @@ test('voice OFF opens selection; cancellation preserves OFF; English enables con
 });
 
 test('written approval alone cannot enable Māori speech; dynamic feedback retains focus values', () => {
-    const h = harness('?draftLanguage=1');
+    const h = harness();
     h.run("PlayerLanguage.resources.Start.status = 'approved'");
     assert.equal(h.run("PlayerLanguage.speech('Start', 'mi')"), null);
     h.run("PlayerLanguage.resources.Start.speechStatus = 'approved'");
@@ -174,7 +232,9 @@ test('optional game metadata requires approval and switching to source-only cont
     h.run("renderGameMetadata(document.getElementById('gameTitleDisplay'), { id: 1, name: 'Source', nameMi: 'Reviewed title', languageApproval: 'draft' }, 'name', 'Fallback')");
     assert.equal(h.element('gameTitleDisplay').textContent, 'Source');
     h.run("renderGameMetadata(document.getElementById('gameTitleDisplay'), { id: 1, name: 'Source', nameMi: 'Reviewed title', languageApproval: 'approved' }, 'name', 'Fallback')");
-    assert.deepEqual(h.element('gameTitleDisplay').children.map(child => child.lang), ['mi', 'en']);
-    h.run("renderGameMetadata(document.getElementById('gameTitleDisplay'), { id: 2, name: 'Next source' }, 'name', 'Fallback'); PlayerLanguage.setPreview(true)");
+    assert.deepEqual(h.element('gameTitleDisplay').children.map(child => child.lang), ['en']);
+    h.run("PlayerLanguage.setLanguage('mi')");
+    assert.equal(h.element('gameTitleDisplay').textContent, 'Reviewed title');
+    h.run("renderGameMetadata(document.getElementById('gameTitleDisplay'), { id: 2, name: 'Next source' }, 'name', 'Fallback'); PlayerLanguage.setLanguage('mi')");
     assert.equal(h.element('gameTitleDisplay').textContent, 'Next source');
 });

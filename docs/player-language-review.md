@@ -1,12 +1,12 @@
 # Player language review inventory
 
-Implementation baseline: `origin/dev` at `cb38330cc20d768ebb04d7acbf15628d6c6b51f3`, fetched 7 October 2026 (Pacific/Auckland).
+Follow-up baseline: `origin/feature/player-bilingual-seek-safety` at `b5a7240c70db82fa364b7e496a563d1f7da34b46`, fetched 7 October 2026 (Pacific/Auckland).
 
 **No Māori strings or voice identities are approved.** All supplied wording comes from the 5 October 2026 `language-review-draft.md`; additions are AI proposals requiring Rauawaawa or qualified te reo Māori review. Written wording (`status`), spoken scripts (`speechStatus`) and actual voice delivery (`approvedVoiceNames`) require separate approval. This inventory does not certify translations or pronunciation.
 
-Normal behavior retains English until resources are approved. The start-page “Preview draft Māori text” checkbox, or `?draftLanguage=1`, explicitly opts into Māori above English on this feature/dev branch. Changing spoken guidance never removes either written line. Staff entry, Staff screens, processing diagnostics and validation stay English. Branding remains unchanged. No email was sent and no speech assets were purchased or uploaded.
+English is the default interface. The English / Māori switch below Voice Guidance selects one written language; selecting Māori explicitly enables candidate wording for this feature/demo review. The obsolete draft checkbox and query preview have been removed. A concise start-page disclosure identifies drafts. This is not formal release approval. Session selection survives navigation, Retry and Next; refresh resets to English. Spoken language remains independently selected and subject to written/script/voice approval. Staff remains English and source-only game metadata/proper names remain unchanged.
 
-Resource keys are the stable English strings in `js/player-language-resources.js`. Dynamic values use placeholders rather than concatenated bilingual markup. Runtime confirmation subtitle keys `prompt:<key>` compose the corresponding script and confirmation suffix; they inherit the base wording's review status. High-frequency tracking/movement updates expose English once to assistive technology; the Māori visual line is hidden from those live-region announcements.
+Resource keys are the stable English strings in `js/player-language-resources.js`. Dynamic values use placeholders rather than concatenated bilingual markup. Runtime confirmation subtitle keys `prompt:<key>` compose the corresponding script and confirmation suffix; they inherit the base wording's review status. Tracking/movement compatibility nodes render the selected language but remain visually hidden with aria-live off. Essential camera failures use a compact localized polite status beside Camera. Missing Māori resources fall back to one English label; source-only game names/descriptions are intentional English fallbacks.
 
 | Resource key / English | Screen/context | Candidate Māori | Spoken English script | Candidate Māori script | Source | Written / speech status | Risks / suggestions | Required reviewer |
 |---|---|---|---|---|---|---|---|---|
@@ -87,7 +87,6 @@ Resource keys are the stable English strings in `js/player-language-resources.js
 | Video progress | Player interface / dynamic state | Te ahunga o te ataata | Video progress | Te ahunga o te ataata | AI proposal; requires review | draft / unapproved | Meaning, imperatives, macrons, local/iwi preference and readability for kaumātua. | Rauawaawa / qualified te reo reviewer; separate voice reviewer |
 | Playback speed | Player interface / dynamic state | Te tere o te ataata | Playback speed | Te tere o te ataata | AI proposal; requires review | draft / unapproved | Meaning, imperatives, macrons, local/iwi preference and readability for kaumātua. | Rauawaawa / qualified te reo reviewer; separate voice reviewer |
 | Video playback controls | Player interface / dynamic state | Ngā mana whakahaere ataata | Video playback controls | Ngā mana whakahaere ataata | AI proposal; requires review | draft / unapproved | Meaning, imperatives, macrons, local/iwi preference and readability for kaumātua. | Rauawaawa / qualified te reo reviewer; separate voice reviewer |
-| Preview draft Māori text | Player interface / dynamic state | Tirohia te tauira reo Māori | Preview draft Māori text | Tirohia te tauira reo Māori | AI proposal; requires review | draft / unapproved | Meaning, imperatives, macrons, local/iwi preference and readability for kaumātua. | Rauawaawa / qualified te reo reviewer; separate voice reviewer |
 | Draft Māori wording awaits Rauawaawa review. | Player interface / dynamic state | Kei te tatari ngā kupu tauira reo Māori kia arotakengia e Rauawaawa. | Draft Māori wording awaits Rauawaawa review. | Kei te tatari ngā kupu tauira reo Māori kia arotakengia e Rauawaawa. | AI proposal; requires review | draft / unapproved | Meaning, imperatives, macrons, local/iwi preference and readability for kaumātua. | Rauawaawa / qualified te reo reviewer; separate voice reviewer |
 | Full Screen mode enabled | Player interface / dynamic state | Kua whakahohea te mata katoa | Full Screen mode enabled | Kua whakahohea te mata katoa | AI proposal; requires review | draft / unapproved | Meaning, imperatives, macrons, local/iwi preference and readability for kaumātua. | Rauawaawa / qualified te reo reviewer; separate voice reviewer |
 | User avatar shown | Player interface / dynamic state | Kua whakaaturia tō whakaahua matihiko | User avatar shown | Kua whakaaturia tō whakaahua matihiko | AI proposal; requires review | draft / unapproved | Meaning, imperatives, macrons, local/iwi preference and readability for kaumātua. | Rauawaawa / qualified te reo reviewer; separate voice reviewer |
@@ -122,13 +121,13 @@ Resource keys are the stable English strings in `js/player-language-resources.js
 
 | Content | Current handling | Status / required review |
 |---|---|---|
-| Branding / Kaumātua Wellness / Movement Game | Preserved source branding | Do not rename; confirm any future bilingual brand presentation with team |
+| Branding / Kaumātua Wellness | Preserved source proper name; Movement Game heading now uses selected candidate | Do not rename; confirm any future bilingual brand presentation with team |
 | User-created names and descriptions; demo Game 1–6 names/descriptions | Preserve source; English speech uses supplied content | Missing Māori metadata and pronunciation approval for each exercise |
 | Optional bilingual names | `nameMi` plus `languageApproval: 'approved'` is supported when supplied in game metadata | Approval must be recorded by human reviewer; no generated translations |
 | Optional bilingual descriptions | `descriptionMi` follows the same approval flag | No translated descriptions supplied; source preserved |
 | Spoken mode, numeric score and exercise names in templates | English speech substitutes actual values; Māori scripts retained for review | Missing reviewed number phrasing, mode wording and content pronunciation |
-| Avatar SVG accessible name | English accessible description preserved | Candidate: Tō whakaahua matihiko korikori (AI proposal, unapproved); reviewer must confirm |
-| Timeline and speed ARIA names | English accessible names, bilingual visible labels in preview | Confirm preferred screen-reader language before release |
+| Avatar SVG accessible name | Selected-language description | Candidate: Tō whakaahua matihiko korikori (AI proposal, unapproved); reviewer must confirm |
+| Timeline and speed ARIA names | Selected-language accessible and visible labels | Confirm preferred screen-reader language before release |
 | Video unsupported fallback | English fallback from baseline | Candidate: Kāore tō pūtirotiro e tautoko i te ataata (AI proposal, unapproved) |
 | Insecure context / missing getUserMedia | Friendly Camera unavailable; technical protocol information stays in console | Review accessible explanation for secure browser/device setup |
 | Reference HTTP/model details | Friendly scoring/tracking unavailable; details stay in console | No technical diagnostics in player controls |
@@ -141,3 +140,16 @@ Resource keys are the stable English strings in `js/player-language-resources.js
 OFF → selection opens the native modal, focuses English and reads a single English introduction mentioning both choices. Choosing English while OFF enables guidance directly. ON → reselection uses the same first-click prompt / second-click confirmation as the other controls and language choices. Escape/Close cancels pending speech, clears focus/subtitles and returns focus without changing the prior selection. Turn Voice Guidance Off disables guidance explicitly. Navigation closes the panel and cancels outstanding speech. Staff actions bypass player voice confirmation and remain silent.
 
 Do not mark a resource approved based on model confidence, a dictionary definition, or presence of a device language tag. Rauawaawa reviews writing and scripts; a suitable speaker/reviewer separately approves delivery. The supplied dictionary reference is context only: https://maoridictionary.co.nz/search?keywords=whakamutu.
+
+
+## Follow-up candidate additions
+
+These additions remain draft for both written and spoken review; no approval fields were upgraded.
+
+| Resource key | Candidate Māori | Context / review requirement |
+|---|---|---|
+| Interface language: {language}. Switch to {nextLanguage}. | Reo whakaatu: {language}. Hurihia ki {nextLanguage}. | Accessible switch action; language names remain English / Māori. AI proposal, qualified review required. |
+| Movement Game | Kēmu Korikori | Default heading only; user-created titles remain source text. AI proposal, qualified review required. |
+| Your movement avatar | Tō whakaahua matihiko korikori | Avatar accessible name. AI proposal, qualified review required. |
+
+Fallback inventory: unknown resource keys use their usable source English; unreviewed game name/description metadata remains source English. Numeric times, playback multipliers, proper names and language names are retained. Optional localized game metadata still requires its own approval.
