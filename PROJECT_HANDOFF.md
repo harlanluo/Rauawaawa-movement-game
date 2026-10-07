@@ -1,4 +1,4 @@
-# Rauawaawa Movement Game — Project Handoff
+# Kaumātua Movement Game — Project Handoff
 
 This document records the current technical state of the project. Repository code is the final source of truth if this document becomes stale.
 
