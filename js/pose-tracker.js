@@ -8,7 +8,7 @@ const DEBUG_CONNECTIONS = [
 
 // Only the hidden player camera is processed locally. Frames are never saved or uploaded.
 // Future reference poses will be loaded separately; demonstration videos are not inputs here.
-export function createPoseTracker({ onStatus = () => {}, onPose = () => {}, forceCPU = false } = {}) {
+export function createPoseTracker({ onStatus = () => {}, onPose = () => {}, getCaptureContext = () => null, forceCPU = false } = {}) {
     const video = document.createElement('video');
     video.hidden = true;
     video.muted = true;
@@ -20,6 +20,7 @@ export function createPoseTracker({ onStatus = () => {}, onPose = () => {}, forc
     let startup = Promise.resolve();
     let stream = null;
     let generation = 0;
+    let poseEpoch = 0;
     let destroyed = false;
     let paused = false;
     let frame = null;
@@ -115,16 +116,20 @@ export function createPoseTracker({ onStatus = () => {}, onPose = () => {}, forc
 
     function schedule(token) {
         if (paused || !ready || !stream || token !== generation || frame !== null) return;
+        const epoch = poseEpoch;
         const callback = now => {
+            if (epoch !== poseEpoch || token !== generation) return;
             frame = null;
-            if (paused || !stream || token !== generation) return;
+            if (paused || !stream) return;
             if (video.readyState >= 2 && video.currentTime !== lastVideoTime &&
                 now - lastInference >= 1000 / 15) {
                 lastVideoTime = video.currentTime;
                 lastInference = now;
                 try {
+                    const capture = getCaptureContext();
                     const begin = performance.now();
                     const result = model.detectForVideo(video, begin);
+                    if (epoch !== poseEpoch || token !== generation || paused || !stream) return;
                     const elapsed = performance.now() - begin;
                     inferenceMs = inferenceMs ? inferenceMs * 0.9 + elapsed * 0.1 : elapsed;
                     if (lastSample) {
@@ -135,7 +140,7 @@ export function createPoseTracker({ onStatus = () => {}, onPose = () => {}, forc
                     latest = result.landmarks[0]?.map(point => ({ ...point })) || null;
                     status(latest ? 'detected' : 'looking', latest ? 'Player detected' : 'Looking for you…');
                     // Notify consumers only for fresh results, without another animation loop.
-                    try { onPose(begin); }
+                    try { onPose(begin, capture); }
                     catch (error) { console.warn('Pose consumer failed', error); }
                 } catch (error) { fail(error, 'tracking', 'pose inference'); return; }
             }
@@ -210,6 +215,14 @@ export function createPoseTracker({ onStatus = () => {}, onPose = () => {}, forc
         } else if (state === 'paused') status('starting', 'Starting camera…');
     }
 
+    function invalidatePendingPoses() {
+        poseEpoch++;
+        cancelFrame();
+        latest = null;
+        lastVideoTime = -1;
+        schedule(generation);
+    }
+
     function drawDebugFrame(canvas) {
         if (!canvas || !stream || video.readyState < 2) return false;
         const context = canvas.getContext?.('2d');
@@ -259,7 +272,7 @@ export function createPoseTracker({ onStatus = () => {}, onPose = () => {}, forc
 
     return {
         initialize, start, pauseProcessing, resumeProcessing, stop, destroy,
-        drawDebugFrame,
+        drawDebugFrame, invalidatePendingPoses,
         getLatestLandmarks: () => latest?.map(point => ({ ...point })) || null,
         getDiagnostics: () => ({ state, errorCategory, cameraWidth: width, cameraHeight: height, delegate,
             targetInferenceFPS: 15, measuredInferenceFPS: measuredFPS, smoothedInferenceMs: inferenceMs,

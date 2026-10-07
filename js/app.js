@@ -4,6 +4,9 @@
         const browserOnly = new URLSearchParams(location.search).get('libraryBackend') !== 'local';
         const browserLibraryModule = browserOnly ? import('./browser-library.js') : null;
         let isVoiceMode = false;
+        let voiceLanguage = 'en';
+        let voiceReturnFocus = null;
+        let speechGeneration = 0;
         let currentFocusedButton = null;
         let currentMode = 'Seated'; // 'Seated' or 'Standing'
         let currentGameNumber = 1;
@@ -135,9 +138,14 @@
         let poseSession = 0;
         let poseDebugTimer = null;
         let cameraEnabled = false;
+        let cameraStarting = false;
         let scoringSession = null;
         let scoringLoadToken = 0;
         let scoringModule = null;
+        let seekGeneration = 0;
+        let timelineDragging = false;
+        let seekPending = false;
+        let playbackGeneration = 0;
         const referencePoseCache = new Map();
         const cameraToggle = document.getElementById('cameraToggle');
         const avatarPanel = document.getElementById('avatarPanel');
@@ -171,8 +179,10 @@
             poseDebugPanel.textContent = JSON.stringify(window.playerPoseTracking.getDiagnostics(), null, 2);
         }
 
-        function updateMovementFeedback(message, rating = 'idle') {
-            if (movementFeedback.textContent !== message) movementFeedback.textContent = message;
+        function updateMovementFeedback(message, rating = 'idle', values) {
+            if (movementFeedback.dataset.languageKey !== message || movementFeedback._languageValues?.focus !== values?.focus) {
+                PlayerLanguage.render(movementFeedback, message, values);
+            }
             movementFeedback.dataset.rating = rating;
         }
 
@@ -232,10 +242,12 @@
                 updateMovementFeedback('Good - keep moving!', 'good');
             } else if (result.rating === 'almost') {
                 const focus = result.feedback[0]?.label;
-                updateMovementFeedback(focus ? `Almost - adjust your ${focus}` : 'Almost - keep going!', 'almost');
+                updateMovementFeedback(focus ? 'Almost - adjust your {focus}' : 'Almost - keep going!', 'almost',
+                    focus ? { focus, focusMi: PlayerLanguage.entry(focus).mi || focus } : undefined);
             } else if (result.rating === 'miss') {
                 const focus = result.feedback[0]?.label;
-                updateMovementFeedback(focus ? `Keep moving - follow the ${focus}` : 'Keep moving - follow along', 'miss');
+                updateMovementFeedback(focus ? 'Keep moving - follow the {focus}' : 'Keep moving - follow along', 'miss',
+                    focus ? { focus, focusMi: PlayerLanguage.entry(focus).mi || focus } : undefined);
             } else if (result.rating === 'insufficient') {
                 updateMovementFeedback(currentMode === 'Seated'
                     ? 'Make sure your shoulders and arms are visible'
@@ -245,17 +257,22 @@
             }
         }
 
-        function updatePoseScoring(playerLandmarks) {
-            if (!scoringSession || videoEl.paused || videoEl.ended) return;
+        function updatePoseScoring(playerLandmarks, capture) {
+            if (!isGameRunning || isGameReady || isGamePaused || !cameraEnabled ||
+                !scoringSession || videoEl.paused || videoEl.ended || videoEl.seeking ||
+                timelineDragging || seekPending || !playerLandmarks ||
+                capture?.session !== poseSession || capture?.seek !== seekGeneration) return;
             renderPoseScore(scoringSession.update(videoEl.currentTime * 1000, playerLandmarks));
         }
 
         function updateTrackingStatus({ state, message }) {
-            if (trackingStatus.textContent !== message) trackingStatus.textContent = message;
+            if (state === 'paused' && cameraStarting) message = 'Starting camera…';
+            if (trackingStatus.dataset.languageKey !== message) PlayerLanguage.render(trackingStatus, message);
             trackingStatus.dataset.state = state;
             avatarPanel.dataset.tracking = state;
             if (state !== 'detected') avatarPose.reset();
             if (state === 'unavailable') {
+                cameraStarting = false;
                 cameraEnabled = false;
                 clearInterval(poseDebugTimer);
                 poseDebugTimer = null;
@@ -264,13 +281,18 @@
             const previewAvailable = cameraEnabled && ['looking', 'detected', 'paused'].includes(state);
             posePreviewToggle.disabled = !previewAvailable;
             if (!previewAvailable && posePreviewEnabled) setPosePreview(false);
-            cameraToggle.textContent = cameraEnabled && state === 'starting'
-                ? 'Cancel camera start' : active ? 'Camera: ON' : 'Camera: OFF';
+            PlayerLanguage.render(cameraToggle, cameraEnabled && cameraStarting
+                ? 'Cancel Camera Start' : active ? 'Turn Camera Off' : 'Turn Camera On');
             cameraToggle.setAttribute('aria-pressed', String(cameraEnabled));
-            cameraToggle.setAttribute('data-speech', cameraEnabled ? 'Turn camera off' : 'Turn camera on');
+            cameraToggle.setAttribute('data-speech', PlayerLanguage.entry(cameraToggle.dataset.languageKey).speechEn);
+            const cameraError = document.getElementById('cameraError');
+            cameraError.hidden = state !== 'unavailable';
+            if (!cameraError.hidden) PlayerLanguage.render(cameraError, message);
+            cameraToggle.setAttribute('aria-describedby', cameraError.hidden ? '' : 'cameraError');
         }
 
         function stopPlayerTracking() {
+            cameraStarting = false;
             cameraEnabled = false;
             poseSession++;
             poseTracker?.stop();
@@ -287,6 +309,7 @@
             if (cameraEnabled) stopPlayerTracking();
             else {
                 cameraEnabled = true;
+                cameraStarting = true;
                 void startPlayerTracking();
             }
         }
@@ -307,11 +330,12 @@
                     poseTracker = createPoseTracker({
                         forceCPU: new URLSearchParams(location.search).get('poseDelegate') === 'cpu',
                         onStatus: updateTrackingStatus,
-                        onPose: timestamp => {
-                            if (cameraEnabled && isGameRunning && !isGamePaused) {
+                        getCaptureContext: () => ({ session: poseSession, seek: seekGeneration }),
+                        onPose: (timestamp, capture) => {
+                            if (cameraEnabled && isGameRunning && !isGamePaused && capture?.session === poseSession && capture?.seek === seekGeneration) {
                                 const landmarks = poseTracker.getLatestLandmarks();
                                 avatarPose.update(landmarks, timestamp);
-                                updatePoseScoring(landmarks);
+                                updatePoseScoring(landmarks, capture);
                                 if (posePreviewEnabled) poseTracker.drawDebugFrame(posePreviewCanvas);
                             }
                         }
@@ -321,6 +345,11 @@
                 if (poseDebug) poseDebugTimer = setInterval(renderPoseDiagnostics, 1000);
                 if (isGamePaused) poseTracker.pauseProcessing();
                 await started;
+                if (session === poseSession && cameraEnabled) {
+                    cameraStarting = false;
+                    const state = poseTracker.getDiagnostics().state;
+                    updateTrackingStatus({ state, message: state === 'paused' ? 'Tracking paused' : 'Looking for you…' });
+                }
                 renderPoseDiagnostics();
             } catch (error) {
                 console.warn('Player tracker could not start', error);
@@ -351,6 +380,7 @@
                     processingFrame.src = 'about:blank';
                 }
             }
+            closeVoicePanel(false);
             clearVoiceFocus();
             stopGameSession();
 
@@ -363,7 +393,7 @@
             if (screenId === 'screen-win') {
                 triggerConfetti();
                 if (isVoiceMode) {
-                    speak(`Congratulations! Your score is ${currentScore} points. Ka Pai!`);
+                    speak('Congratulations! Your score is {score} points. Ka Pai!', true, { score: currentScore });
                 }
             }
         }
@@ -371,7 +401,7 @@
         // Open Playlist for Seated or Standing
         function openPlaylist(mode) {
             currentMode = mode;
-            document.getElementById('playlistHeaderTitle').innerText = `${mode} Playlist`;
+            PlayerLanguage.render(document.getElementById('playlistHeaderTitle'), `${mode} Playlist`);
             renderKaumatuaGameLibrary();
             goToScreen('screen-playlist');
         }
@@ -388,7 +418,7 @@
             if (availableGames.length === 0) {
                 const emptyMessage = document.createElement('p');
                 emptyMessage.className = 'empty-library';
-                emptyMessage.textContent = `No ${currentMode.toLowerCase()} games are currently available.`;
+                PlayerLanguage.render(emptyMessage, `No ${currentMode.toLowerCase()} games are currently available.`);
                 grid.appendChild(emptyMessage);
                 return;
             }
@@ -396,11 +426,38 @@
             availableGames.forEach(game => {
                 const button = document.createElement('button');
                 button.className = 'game-grid-btn accessible-target';
-                button.textContent = game.name;
+                button.setAttribute('aria-label', game.name);
+                const name = document.createElement('span');
+                name.id = `game-name-${game.id}`;
+                button.setAttribute('aria-labelledby', name.id);
+                renderGameMetadata(name, game, 'name', game.name);
+                button.appendChild(name);
+                if (game.description) {
+                    const description = document.createElement('small');
+                    description.className = 'game-card-description';
+                    description.id = `game-description-${game.id}`;
+                    button.setAttribute('aria-describedby', description.id);
+                    renderGameMetadata(description, game, 'description', game.description);
+                    button.appendChild(description);
+                }
                 button.setAttribute('data-speech', `${game.name}. ${game.description || currentMode + ' exercise'}`);
                 button.addEventListener('click', () => handleAccessibleClick(button, () => startGame(game.id)));
                 grid.appendChild(button);
             });
+        }
+
+        function renderGameMetadata(element, game, field, fallback) {
+            if (game?.[`${field}Mi`] && game.languageApproval === 'approved') {
+                const key = `game:${game.id}:${field}`;
+                PlayerLanguage.resources[key] = { en: game[field] || fallback, mi: game[`${field}Mi`], status: 'approved' };
+                PlayerLanguage.render(element, key);
+            } else {
+                delete element.dataset.languageKey;
+                element.textContent = game?.[field] || fallback;
+                element.lang = 'en';
+                element.setAttribute('aria-label', element.textContent);
+                element.setAttribute('title', element.textContent);
+            }
         }
 
         // Start Game
@@ -411,7 +468,7 @@
             const selectedVideoSrc = selectedGame && selectedGame.videoSrc
                 ? selectedGame.videoSrc
                 : DEFAULT_VIDEO_SRC;
-            document.getElementById('gameTitleDisplay').textContent = selectedGameName;
+            renderGameMetadata(document.getElementById('gameTitleDisplay'), selectedGame, 'name', selectedGameName);
             goToScreen('screen-game');
 
             resetMovementScore();
@@ -419,10 +476,13 @@
             isGameRunning = true;
             isGamePaused = true;
             isGameReady = true;
-            btnPauseGame.innerText = 'Start';
+            PlayerLanguage.render(btnPauseGame, 'Start');
+            isFullscreenActive = true;
+            renderGameLayout();
+            timelineDragging = seekPending = false;
             btnPauseGame.style.background = '#00E676';
-            document.getElementById('pauseOverlayTitle').textContent = 'Ready when you are';
-            document.getElementById('pauseOverlayHint').textContent = 'Get comfortable, turn the camera on, then press Start';
+            PlayerLanguage.render(document.getElementById('pauseOverlayTitle'), 'Ready when you are');
+            PlayerLanguage.render(document.getElementById('pauseOverlayHint'), 'Get comfortable, turn the camera on, then press Start');
             pauseOverlay.classList.add('active');
             avatarSvg.classList.add('paused');
             avatarPose.setMode(currentMode);
@@ -436,13 +496,13 @@
             }
             playbackSpeed.value = '1';
             videoEl.playbackRate = 1;
-            videoEl.currentTime = 0;
+            seekVideo(0);
             updateVideoTimeline();
             videoEl.pause();
             updateMovementFeedback('Get ready — press Start when comfortable');
 
             if (isVoiceMode) {
-                speak(`${currentMode} ${selectedGameName}. Get ready, then press Start.`);
+                speak('{mode} {gameName}. Get ready, then press Start.', true, { mode: currentMode, gameName: selectedGameName });
             }
         }
 
@@ -455,6 +515,9 @@
         }
 
         function updateVideoTimeline() {
+            if (videoEl.videoWidth > 0 && videoEl.videoHeight > 0) {
+                document.getElementById('gameStage').style.setProperty?.('--video-aspect-ratio', String(videoEl.videoWidth / videoEl.videoHeight));
+            }
             const duration = Number.isFinite(videoEl.duration) && videoEl.duration > 0
                 ? videoEl.duration
                 : 0;
@@ -465,7 +528,7 @@
             videoCurrentTime.textContent = formatVideoTime(currentTime);
             videoDuration.textContent = formatVideoTime(duration);
             videoProgress.max = duration || 1;
-            videoProgress.value = Math.min(currentTime, duration || 0);
+            if (!timelineDragging) videoProgress.value = Math.min(currentTime, duration || 0);
             videoProgress.disabled = duration === 0;
         }
 
@@ -476,7 +539,7 @@
         videoProgress.addEventListener('input', function() {
             const seekTime = Number(videoProgress.value);
             if (Number.isFinite(seekTime) && Number.isFinite(videoEl.duration)) {
-                videoEl.currentTime = Math.min(Math.max(seekTime, 0), videoEl.duration);
+                seekVideo(Math.min(Math.max(seekTime, 0), videoEl.duration));
                 videoCurrentTime.textContent = formatVideoTime(videoEl.currentTime);
             }
         });
@@ -486,10 +549,49 @@
             videoEl.playbackRate = Number.isFinite(selectedSpeed) ? selectedSpeed : 1;
         });
 
+        // Invalidate captures before app assignments and at native seek boundaries.
+        // The tracker inference is synchronous; capture context also protects reentrant/late consumers.
+        function invalidatePoseComparison() {
+            seekGeneration++;
+            scoringSession?.resetTransient?.();
+            poseTracker?.invalidatePendingPoses();
+            avatarPose.reset();
+            updateMovementFeedback(isGameReady ? 'Get ready — press Start when comfortable'
+                : isGamePaused ? 'Game paused' : cameraEnabled ? 'Follow the movement' : 'Turn camera on to score');
+        }
+        function beginVideoSeek() {
+            seekPending = true;
+            invalidatePoseComparison();
+        }
+        function completeVideoSeek() {
+            if (videoEl.seeking || timelineDragging) return;
+            invalidatePoseComparison();
+            seekPending = false;
+        }
+        function seekVideo(time) {
+            beginVideoSeek();
+            videoEl.currentTime = time;
+            // Assigning the same position may produce no seeked event.
+            if (!videoEl.seeking) completeVideoSeek();
+        }
+        videoEl.addEventListener('seeking', beginVideoSeek);
+        videoEl.addEventListener('seeked', completeVideoSeek);
+        videoProgress.addEventListener('pointerdown', () => {
+            timelineDragging = true;
+            beginVideoSeek();
+        });
+        const endTimelineDrag = () => { timelineDragging = false; completeVideoSeek(); };
+        window.addEventListener('pointerup', endTimelineDrag);
+        window.addEventListener('pointercancel', endTimelineDrag);
+        videoProgress.addEventListener('change', endTimelineDrag);
+        videoProgress.addEventListener('blur', endTimelineDrag);
+
         // Pause / Resume Game
         function togglePauseGame() {
             if (!isGameRunning) return;
 
+            playbackGeneration++;
+            invalidatePoseComparison();
             isGamePaused = !isGamePaused;
             if (isGamePaused) {
                 if (cameraEnabled) poseTracker?.pauseProcessing();
@@ -497,44 +599,44 @@
                 updateMovementFeedback('Game paused');
                 videoEl.pause();
                 avatarSvg.classList.add('paused');
-                document.getElementById('pauseOverlayTitle').textContent = '⏸️ GAME PAUSED';
-                document.getElementById('pauseOverlayHint').textContent = 'Press Resume when you are ready';
+                PlayerLanguage.render(document.getElementById('pauseOverlayTitle'), 'GAME PAUSED');
+                PlayerLanguage.render(document.getElementById('pauseOverlayHint'), 'Press Resume when you are ready');
                 pauseOverlay.classList.add('active');
-                btnPauseGame.innerText = 'Resume';
+                PlayerLanguage.render(btnPauseGame, 'Resume');
                 btnPauseGame.style.background = '#00E676';
                 if (isVoiceMode) speak("Game Paused");
             } else {
                 const firstStart = isGameReady;
                 isGameReady = false;
-                videoEl.play().catch(e => console.log(e));
+                const token = ++playbackGeneration;
+                videoEl.play().then(() => {
+                    if (token !== playbackGeneration && (!isGameRunning || isGamePaused)) videoEl.pause();
+                }).catch(error => {
+                    if (token === playbackGeneration && isGameRunning && !isGamePaused) togglePauseGame();
+                    console.warn('Game playback could not start', error);
+                });
                 if (cameraEnabled) poseTracker?.resumeProcessing();
                 updateMovementFeedback(cameraEnabled ? 'Follow the movement' : 'Turn camera on to score');
                 avatarSvg.classList.remove('paused');
                 pauseOverlay.classList.remove('active');
-                btnPauseGame.innerText = 'Pause';
+                PlayerLanguage.render(btnPauseGame, 'Pause');
                 btnPauseGame.style.background = 'var(--color-pause)';
                 if (isVoiceMode) speak(firstStart ? "Let's move!" : "Game Resumed");
             }
         }
 
-        // Toggle Full Screen View
+        function renderGameLayout() {
+            const stage = document.getElementById('gameStage');
+            stage.classList.toggle('fullscreen-active', isFullscreenActive);
+            avatarPanel.setAttribute('aria-hidden', String(isFullscreenActive));
+            PlayerLanguage.render(btnFullscreenToggle, isFullscreenActive ? 'Show User Avatar' : 'Full Screen');
+            btnFullscreenToggle.setAttribute('aria-expanded', String(!isFullscreenActive));
+            btnFullscreenToggle.setAttribute('aria-controls', 'avatarPanel');
+        }
         function toggleFullscreenMode() {
             isFullscreenActive = !isFullscreenActive;
-            const stage = document.getElementById('gameStage');
-
-            if (isFullscreenActive) {
-                stage.classList.add('fullscreen-active');
-                btnFullscreenToggle.innerText = 'Exit Full Screen';
-                btnFullscreenToggle.style.background = '#ff9800';
-                btnFullscreenToggle.setAttribute('data-speech', 'Exit Full Screen to Split Screen');
-                if (isVoiceMode) speak("Full Screen mode enabled");
-            } else {
-                stage.classList.remove('fullscreen-active');
-                btnFullscreenToggle.innerText = 'Full Screen';
-                btnFullscreenToggle.style.background = 'var(--color-fullscreen)';
-                btnFullscreenToggle.setAttribute('data-speech', 'Switch to Full Screen mode');
-                if (isVoiceMode) speak("Split Screen mode enabled");
-            }
+            renderGameLayout();
+            if (isVoiceMode) speak(isFullscreenActive ? 'Full Screen mode enabled' : 'User avatar shown');
         }
 
         // Finish Game -> Win Screen
@@ -569,6 +671,9 @@
 
         // Stop session cleanly
         function stopGameSession() {
+            playbackGeneration++;
+            seekGeneration++;
+            timelineDragging = seekPending = false;
             scoringLoadToken++;
             scoringSession = null;
             stopPlayerTracking();
@@ -931,33 +1036,54 @@
         /* ---------------------------------------------------- */
         let subtitleTimer = null;
 
-        function toggleVoiceMode() {
-            isVoiceMode = !isVoiceMode;
+        function toggleInterfaceLanguage() {
+            clearVoiceFocus();
+            PlayerLanguage.setLanguage(PlayerLanguage.interfaceLanguage === 'en' ? 'mi' : 'en');
+        }
 
-            const voiceButtons = document.querySelectorAll('.voice-icon-btn');
-            const voiceStates = document.querySelectorAll('.voice-state');
-            const voiceBadges = document.querySelectorAll('.voice-text-badge');
-
-            voiceButtons.forEach(btn => {
-                btn.classList.toggle('active', isVoiceMode);
-                btn.setAttribute('aria-pressed', String(isVoiceMode));
+        function renderVoiceState() {
+            document.querySelectorAll('.voice-icon-btn').forEach(button => {
+                button.classList.toggle('active', isVoiceMode);
+                button.setAttribute('aria-pressed', String(isVoiceMode));
+                PlayerLanguage.render(button, isVoiceMode ? 'Voice Guidance: ON' : 'Voice Guidance: OFF');
             });
-            voiceStates.forEach(state => state.innerText = isVoiceMode ? "ON" : "OFF");
-            voiceBadges.forEach(badge => badge.innerText = isVoiceMode ? "Voice: ON" : "Voice: OFF");
-
-            if (isVoiceMode) {
-                const msg = "Voice Guidance Mode Enabled. Tap any button once to hear its name, tap again to activate.";
-                speak(msg);
-            } else {
-                clearVoiceFocus();
-                const msg = "Voice Guidance Mode Disabled.";
-                speak(msg);
-            }
+            document.getElementById('voiceEnglish').setAttribute('aria-pressed', String(isVoiceMode && voiceLanguage === 'en'));
+            document.getElementById('voiceMaori').setAttribute('aria-pressed', String(isVoiceMode && voiceLanguage === 'mi'));
+        }
+        function toggleVoiceMode() {
+            voiceReturnFocus = document.activeElement;
+            clearVoiceFocus();
+            document.getElementById('voiceLanguageDialog').showModal();
+            document.getElementById('voiceEnglish').focus();
+            renderMaoriVoiceNotice();
+            speak('Choose voice language. English. Māori.');
+        }
+        function closeVoicePanel(returnFocus = true) {
+            const dialog = document.getElementById('voiceLanguageDialog');
+            if (dialog.open) dialog.close();
+            clearVoiceFocus();
+            if (returnFocus) voiceReturnFocus?.focus();
+        }
+        function selectVoiceLanguage(language) {
+            clearVoiceFocus();
+            voiceLanguage = language;
+            isVoiceMode = true;
+            renderVoiceState();
+            closeVoicePanel();
+            speak(voiceLanguage === 'mi' && !preferredMaoriVoice
+                ? 'No Māori voice is available on this device. You can select Māori with text prompts, or choose English for audio.'
+                : 'Voice Guidance Mode Enabled. Tap any button once to hear its name, tap again to activate.');
+        }
+        function turnVoiceOff() {
+            isVoiceMode = false;
+            renderVoiceState();
+            closeVoicePanel();
+            speak('Voice Guidance Mode Disabled.');
         }
 
         // Dual action click handler
         function handleAccessibleClick(element, actionCallback) {
-            if (!isVoiceMode) {
+            if (!isVoiceMode || element.closest('.staff-screen, .role-staff')) {
                 // Direct activation in standard mode
                 actionCallback();
                 return;
@@ -974,14 +1100,24 @@
                 currentFocusedButton = element;
                 element.classList.add('voice-focused');
 
-                const speechPrompt = element.getAttribute('data-speech') || element.innerText.trim();
-                const guidanceMessage = `${speechPrompt}. Tap again to confirm.`;
+                const key = element.dataset.speechKey || element.dataset.languageKey;
+                const speechPrompt = key ? PlayerLanguage.speech(key, voiceLanguage, element._languageValues) : element.getAttribute('data-speech') || element.innerText.trim();
+                const guidanceMessage = `${speechPrompt || element.getAttribute('data-speech')}. ${PlayerLanguage.speech('Tap again to confirm.', voiceLanguage) || 'Tap again to confirm.'}`;
 
-                speak(guidanceMessage);
+                const subtitleKey = `prompt:${key || speechPrompt}`;
+                const resource = PlayerLanguage.entry(key || speechPrompt);
+                PlayerLanguage.resources[subtitleKey] = {
+                    en: `${resource.speechEn || resource.en}. ${PlayerLanguage.entry('Tap again to confirm.').en}`,
+                    mi: resource.mi ? `${resource.speechMi || resource.mi} ${PlayerLanguage.entry('Tap again to confirm.').mi}` : '',
+                    status: resource.status, speechStatus: resource.speechStatus, speechEn: guidanceMessage
+                };
+                speak(subtitleKey, true, element._languageValues);
             }
         }
 
         function clearVoiceFocus() {
+            speechGeneration++;
+            window.speechSynthesis?.cancel();
             if (currentFocusedButton) {
                 currentFocusedButton.classList.remove('voice-focused');
                 currentFocusedButton = null;
@@ -993,7 +1129,7 @@
             clearTimeout(subtitleTimer);
             const sub = document.getElementById('voice-subtitle');
             if (sub) {
-                sub.innerText = "🔊 " + text;
+                PlayerLanguage.render(sub, text);
                 sub.style.display = 'block';
             }
         }
@@ -1008,10 +1144,17 @@
 
         // English Voice selector for robust cross-device compatibility (iPad, Android, Windows, Mac)
         let preferredEnglishVoice = null;
+        let preferredMaoriVoice = null;
+        function renderMaoriVoiceNotice() {
+            const notice = document.getElementById('maoriVoiceNotice');
+            notice.hidden = Boolean(preferredMaoriVoice);
+            if (!notice.hidden) PlayerLanguage.render(notice, 'No Māori voice is available on this device. You can select Māori with text prompts, or choose English for audio.');
+        }
 
         function initEnglishVoice() {
             if ('speechSynthesis' in window) {
                 const voices = window.speechSynthesis.getVoices();
+                preferredMaoriVoice = voices.find(voice => /^mi(?:-|$)/i.test(voice.lang)) || null;
                 if (voices && voices.length > 0) {
                     // Priority: en-NZ > en-AU > en-GB > en-US > any English voice
                     preferredEnglishVoice = voices.find(v => v.lang === 'en-NZ') ||
@@ -1021,6 +1164,7 @@
                                            voices.find(v => v.lang && v.lang.toLowerCase().startsWith('en'));
                 }
             }
+            renderMaoriVoiceNotice();
         }
 
         if ('speechSynthesis' in window) {
@@ -1039,15 +1183,26 @@
         }
 
         // Text-to-Speech Engine with 100% synchronized subtitle
-        function speak(text, showSub = true) {
+        function speak(key, showSub = true, values = {}) {
+            const text = PlayerLanguage.speech(key, voiceLanguage, values);
+            if (!text) {
+                if (showSub) showSubtitle(key);
+                return;
+            }
+            const token = ++speechGeneration;
             if (showSub) {
-                showSubtitle(text);
+                showSubtitle(key);
+                PlayerLanguage.render(document.getElementById('voice-subtitle'), key, values);
             }
             if ('speechSynthesis' in window) {
                 window.speechSynthesis.cancel(); // Cancel any ongoing speech
+                if (voiceLanguage === 'mi' && !preferredMaoriVoice) {
+                    if (showSub && !currentFocusedButton) subtitleTimer = setTimeout(hideSubtitle, 6000);
+                    return; // Keep Māori selected; never substitute an English voice.
+                }
 
                 // Ensure English words for all digits
-                const spokenText = formatTextForEnglishSpeech(text);
+                const spokenText = voiceLanguage === 'mi' ? text : formatTextForEnglishSpeech(text);
                 const utterance = new SpeechSynthesisUtterance(spokenText);
                 utterance.rate = 0.92; // Clear and accessible pace
                 utterance.pitch = 1.0;
@@ -1056,7 +1211,10 @@
                 if (!preferredEnglishVoice) {
                     initEnglishVoice();
                 }
-                if (preferredEnglishVoice) {
+                if (voiceLanguage === 'mi') {
+                    utterance.voice = preferredMaoriVoice;
+                    utterance.lang = preferredMaoriVoice.lang;
+                } else if (preferredEnglishVoice) {
                     utterance.voice = preferredEnglishVoice;
                     utterance.lang = preferredEnglishVoice.lang;
                 } else {
@@ -1064,7 +1222,7 @@
                 }
 
                 utterance.onend = function() {
-                    if (!currentFocusedButton) {
+                    if (token === speechGeneration && !currentFocusedButton) {
                         clearTimeout(subtitleTimer);
                         subtitleTimer = setTimeout(() => {
                             hideSubtitle();
@@ -1235,3 +1393,10 @@
             } catch (error) { status.textContent = error.name === 'AbortError' ? 'Folder selection cancelled.' : error.message; }
             finally { button.disabled = false; }
         }
+
+        document.querySelectorAll('[data-language-key]').forEach(element => PlayerLanguage.render(element, element.dataset.languageKey));
+        PlayerLanguage.setLanguage('en');
+        document.getElementById('voiceLanguageDialog').addEventListener('cancel', event => {
+            event.preventDefault(); closeVoicePanel();
+        });
+        renderVoiceState();

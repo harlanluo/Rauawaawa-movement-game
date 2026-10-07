@@ -1,6 +1,6 @@
 # Camera Pose Tracking Demo
 
-A standalone technical prototype for the Rauawaawa movement game. It tests browser webcam input and real-time, single-person pose tracking with Google MediaPipe.
+A standalone technical prototype for the Kaumātua movement game. It tests browser webcam input and real-time, single-person pose tracking with Google MediaPipe.
 
 This demo is currently separate from the main game prototype and is not yet integrated into the Kaumātua exercise flow.
 

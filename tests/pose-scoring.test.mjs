@@ -2,6 +2,27 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createPoseScoringSession, findReferenceFrames } from '../js/pose-scoring.js';
 
+test('seeks clear only transient comparison; replay improves old checkpoints without filling gaps', () => {
+    let similarity = 0.5;
+    const session = createPoseScoringSession({ frames: [0, 500, 1000, 30000].map(timeMs => ({ timeMs, landmarks: pose() })) }, {
+        comparePoses: () => ({ compared: true, similarity, rating: 'good', feedback: [] })
+    });
+    assert.equal(session.update(0, pose()).score, 5);
+    assert.equal(session.update(500, pose()).score, 10);
+    session.resetTransient();
+    assert.equal(session.getLatest(), null);
+    assert.equal(session.getSummary().score, 10);
+    assert.equal(session.getSummary().sampleCount, 2);
+    similarity = 1;
+    assert.equal(session.update(0, pose()).score, 15);
+    for (let replay = 0; replay < 10; replay++) assert.equal(session.update(0, pose()).score, 15);
+    similarity = 0.1;
+    assert.equal(session.update(0, pose()).score, 15);
+    session.resetTransient();
+    assert.equal(session.update(30000, pose()).sampleCount, 3);
+    assert.equal(session.getSummary().score, 16);
+});
+
 function pose(marker = 0) {
     return Array.from({ length: 33 }, (_, index) => ({
         x: 0.4 + marker + index * 0.001,

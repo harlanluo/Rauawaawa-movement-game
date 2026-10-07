@@ -91,7 +91,8 @@ async function harness({ raf = false, gpuFails = false, cpuFails = false, permis
     await module.evaluate();
     const tracker = module.namespace.createPoseTracker({ forceCPU,
         onStatus: status => { statuses.push(status); listeners.onStatus?.(status); },
-        onPose: timestamp => listeners.onPose?.(timestamp)
+        getCaptureContext: () => listeners.getCaptureContext?.(),
+        onPose: (timestamp, capture) => listeners.onPose?.(timestamp, capture)
     });
     return { tracker, video, callbacks, streams, delegates, statuses, listeners, operations, warnings,
         setLandmarks: value => { landmarks = value; },
@@ -273,6 +274,28 @@ test('pause while starting prevents processing, detection and stream errors rele
     assert.equal(h.callbacks.size, 0);
 });
 
+test('seek invalidation rejects a queued pre-seek callback and preserves the model and stream', async () => {
+    const h = await harness();
+    const captures = [];
+    let seek = 0;
+    h.listeners.getCaptureContext = () => ({ seek });
+    h.listeners.onPose = (timestamp, context) => captures.push(context.seek);
+    await h.tracker.start();
+    h.tick(1000);
+    const oldCallback = [...h.callbacks.values()][0];
+    seek++;
+    h.tracker.invalidatePendingPoses();
+    assert.equal(h.tracker.getLatestLandmarks(), null);
+    oldCallback(1100);
+    assert.deepEqual(captures, [0]);
+    assert.equal(h.callbacks.size, 1);
+    h.tick(1200);
+    assert.deepEqual(captures, [0, 1]);
+    assert.equal(h.stats().requests, 1);
+    assert.equal(h.delegates.length, 1);
+    h.tracker.stop();
+});
+
 test('debug preview draws the local camera frame and reliable pose connections only while running', async () => {
     const h = await harness();
     const operations = [];
@@ -310,13 +333,17 @@ test('real app handlers release mock camera on Finish, Quit, navigation and page
     function element(id) {
         if (!elements.has(id)) elements.set(id, {
             textContent: '', dataset: {}, style: {}, value: '', currentTime: 0, duration: 73,
-            classList: { add() {}, remove() {} }, addEventListener() {},
+            classList: { add() {}, remove() {}, toggle() {} },
+            listeners: {}, addEventListener(type, callback) { this.listeners[type] = callback; },
+            closest: () => null,
+            replaceChildren() { this.textContent = ''; }, appendChild(child) { this.textContent += child.textContent; },
+            matches: () => false, focus() {}, close() {},
             getAttribute: () => '', setAttribute() {}, load() {}, pause() {}, play: async () => {}
         });
         return elements.get(id);
     }
     const context = vm.createContext({
-        document: { getElementById: element, querySelectorAll: () => [] },
+        document: { getElementById: element, querySelectorAll: () => [], createElement: () => ({}) },
         window: { addEventListener: (type, callback) => events.set(type, callback) },
         location: { search: '' }, URLSearchParams, console, setInterval, clearInterval,
         setTimeout, clearTimeout,
@@ -336,6 +363,8 @@ test('real app handlers release mock camera on Finish, Quit, navigation and page
     }, { context });
     await scoringModule.link(() => {}); await scoringModule.evaluate();
     const app = fs.readFileSync(path.join(__dirname, '../js/app.js'), 'utf8');
+    vm.runInContext(fs.readFileSync(path.join(__dirname, '../js/player-language.js'), 'utf8'), context);
+    vm.runInContext(fs.readFileSync(path.join(__dirname, '../js/player-language-resources.js'), 'utf8'), context);
     vm.runInContext(fs.readFileSync(path.join(__dirname, '../js/avatar-pose-controller.js'), 'utf8'), context);
     new vm.Script(app, {
         importModuleDynamically: specifier => specifier === './pose-scoring.js' ? scoringModule : module
@@ -347,15 +376,15 @@ test('real app handlers release mock camera on Finish, Quit, navigation and page
         await new Promise(r => setImmediate(r));
         assert.equal(h.stats().requests, requestsBefore, 'entering game must not request camera');
         assert.equal(vm.runInContext('cameraEnabled', context), false);
-        assert.equal(element('cameraToggle').textContent, 'Camera: OFF');
+        assert.equal(element('cameraToggle').textContent, 'Turn Camera On');
         assert.equal(element('avatarSvg').dataset.pose, 'neutral');
         vm.runInContext('togglePlayerCamera()', context);
         for (let i = 0; i < 20 && h.callbacks.size === 0; i++) await new Promise(r => setImmediate(r));
         assert.equal(vm.runInContext('isGamePaused', context), true);
-        assert.equal(element('btnPauseGame').innerText, 'Start');
+        assert.equal(element('btnPauseGame').textContent, 'Start');
         assert.equal(h.callbacks.size, 0, 'preparation must not process or score movements');
         vm.runInContext('togglePauseGame()', context);
-        assert.equal(element('btnPauseGame').innerText, 'Pause');
+        assert.equal(element('btnPauseGame').textContent, 'Pause');
         assert.equal(h.callbacks.size, 1);
         assert.equal(h.streams.filter(s => s.getTracks()[0].readyState === 'live').length, 1);
     }
@@ -379,7 +408,43 @@ test('real app handlers release mock camera on Finish, Quit, navigation and page
     assert.ok(scoreUpdates > 0);
     assert.equal(element('gameScoreDisplay').textContent, 88);
     assert.equal(element('movementFeedback').dataset.rating, 'good');
-    h.setLandmarks(null); h.tick(1500);
+    assert.equal(vm.runInContext('isFullscreenActive', context), true);
+    const requests = h.stats().requests;
+    vm.runInContext('toggleFullscreenMode(); toggleFullscreenMode()', context);
+    assert.equal(h.stats().requests, requests);
+    assert.equal(vm.runInContext('cameraEnabled', context), true);
+    assert.equal(element('btnFullscreenToggle').textContent, 'Show User Avatar');
+    const staleCapture = vm.runInContext('({ session: poseSession, seek: seekGeneration })', context);
+    let beforeSeek = scoreUpdates;
+    element('videoProgress').listeners.pointerdown();
+    h.tick(1350);
+    assert.equal(scoreUpdates, beforeSeek, 'dragging must suspend scoring');
+    element('gameVideo').seeking = true;
+    element('gameVideo').listeners.seeking();
+    h.listeners.onPose(1400, staleCapture);
+    assert.equal(scoreUpdates, beforeSeek, 'pre-seek inference must not score landing reference');
+    element('gameVideo').currentTime = 30;
+    element('gameVideo').seeking = false;
+    element('gameVideo').listeners.seeked();
+    h.tick(1450);
+    assert.equal(scoreUpdates, beforeSeek, 'native seeked cannot override active pointer dragging');
+    events.get('pointerup')();
+    h.listeners.onPose(1451, staleCapture);
+    assert.equal(scoreUpdates, beforeSeek, 'old capture still invalid after seek completion');
+    h.tick(1550);
+    assert.equal(scoreUpdates, beforeSeek + 1, 'fresh post-seek capture can score');
+    vm.runInContext('togglePauseGame(); seekVideo(10); seekVideo(20); seekVideo(30)', context);
+    assert.equal(vm.runInContext('isGamePaused', context), true);
+    const pausedCapture = vm.runInContext('({ session: poseSession, seek: seekGeneration })', context);
+    h.listeners.onPose(1600, pausedCapture);
+    assert.equal(scoreUpdates, beforeSeek + 1, 'seek while paused preserves playback intent');
+    vm.runInContext('togglePauseGame()', context);
+    h.listeners.onPose(1601, pausedCapture);
+    assert.equal(scoreUpdates, beforeSeek + 1, 'pause/resume requires another fresh pose');
+    h.tick(1650);
+    assert.equal(scoreUpdates, beforeSeek + 2);
+
+    h.setLandmarks(null); h.tick(1750);
     assert.equal(element('avatarSvg').dataset.pose, 'neutral');
     assert.equal(element('trackingStatus').textContent, 'Looking for you…');
     vm.runInContext('togglePauseGame()', context); assert.equal(h.callbacks.size, 0);
