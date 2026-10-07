@@ -21,12 +21,11 @@
         <!-- ======================================================== -->
         <div id="screen-start" class="screen active">
             <div class="start-top">
-                <div class="home-brand"><span>🌟</span> Kaumātua Wellness</div>
+                <div class="home-brand">Kaumātua Wellness</div>
                 <button class="voice-icon-btn start-voice-btn player-voice-btn accessible-target"
                         data-speech="Toggle Voice Guidance Mode"
                         aria-pressed="false"
                         onclick="handleAccessibleClick(this, toggleVoiceMode)">
-                    <span class="player-nav-icon" aria-hidden="true">🔊</span>
                     <span>Voice Guidance: <span class="voice-state">OFF</span></span>
                 </button>
             </div>
@@ -36,14 +35,13 @@
                     <button class="role-btn role-kaumatua role-primary accessible-target"
                             data-speech="Start Game"
                             onclick="handleAccessibleClick(this, () => goToScreen('screen-home'))">
-                        <span class="role-icon role-icon-primary" aria-hidden="true">🧓</span>
                         <span>Start Game</span>
                     </button>
                 </div>
                 <button class="role-btn role-staff role-secondary accessible-target"
                         data-speech="Staff login. Login required"
                         onclick="handleAccessibleClick(this, openStaffLogin)">
-                    👥 Staff
+                    Staff
                     <small>Login required</small>
                 </button>
             </div>
@@ -55,13 +53,12 @@
         <div id="screen-home" class="screen">
             <div class="home-top">
                 <div class="home-brand">
-                    <span>🌟</span> Kaumātua Wellness
+                    Kaumātua Wellness
                 </div>
                 <button class="voice-icon-btn home-voice-btn player-voice-btn accessible-target"
                         data-speech="Toggle Voice Guidance Mode"
                         aria-pressed="false"
                         onclick="handleAccessibleClick(this, toggleVoiceMode)">
-                    <span class="player-nav-icon" aria-hidden="true">🔊</span>
                     <span>Voice Guidance: <span class="voice-state">OFF</span></span>
                 </button>
                 <button class="home-icon-btn player-nav-btn accessible-target"
@@ -79,14 +76,12 @@
                     <button class="home-mode-btn btn-seated accessible-target"
                             data-speech="Seated mode"
                             onclick="handleAccessibleClick(this, () => openPlaylist('Seated'))">
-                        <span class="mode-icon" aria-hidden="true">🪑</span>
                         <span class="mode-label">Seated</span>
                     </button>
 
                     <button class="home-mode-btn btn-standing accessible-target"
                             data-speech="Standing mode"
                             onclick="handleAccessibleClick(this, () => openPlaylist('Standing'))">
-                        <span class="mode-icon" aria-hidden="true">🧍</span>
                         <span class="mode-label">Standing</span>
                     </button>
                 </div>
@@ -102,7 +97,6 @@
                         data-speech="Voice Guidance switch"
                         aria-pressed="false"
                         onclick="handleAccessibleClick(this, toggleVoiceMode)">
-                    <span class="player-nav-icon" aria-hidden="true">🔊</span>
                     <span class="voice-text-badge">Voice: OFF</span>
                 </button>
 
@@ -111,7 +105,6 @@
                 <button class="home-icon-btn player-nav-btn accessible-target"
                         data-speech="Back to Home"
                         onclick="handleAccessibleClick(this, () => goToScreen('screen-home'))">
-                    <span class="player-nav-icon" aria-hidden="true">🏠</span>
                     <span>Home</span>
                 </button>
             </div>
@@ -132,7 +125,6 @@
                             data-speech="Voice Guidance switch"
                             aria-pressed="false"
                             onclick="handleAccessibleClick(this, toggleVoiceMode)">
-                        <span class="player-nav-icon" aria-hidden="true">🔊</span>
                         <span class="voice-text-badge">Voice: OFF</span>
                     </button>
                 </div>
@@ -141,7 +133,6 @@
 
                 <div class="game-score-wrap">
                     <div class="status-pill score">
-                        <span>⭐</span>
                         <span>Score: <span id="gameScoreDisplay">180</span></span>
                     </div>
                 </div>
@@ -153,7 +144,7 @@
                 <!-- Left: User Avatar -->
                 <div id="avatarPanel" class="stage-avatar-panel" data-tracking="stopped">
                     <pre id="poseDebugPanel" class="pose-debug-panel" hidden></pre>
-                    <div class="avatar-label">👤 User Avatar</div>
+                    <div class="avatar-label">User Avatar</div>
 
                     <div class="avatar-svg-wrap">
                         <div class="avatar-wave-rings"></div>
@@ -209,7 +200,7 @@
 
                     <!-- Pause Overlay -->
                     <div id="pauseOverlay" class="pause-overlay">
-                        <span id="pauseOverlayTitle">⏸️ GAME PAUSED</span>
+                        <span id="pauseOverlayTitle">GAME PAUSED</span>
                         <span id="pauseOverlayHint" style="font-size: 18px; margin-top: 8px; color: #ffca28;">Press Resume when you are ready</span>
                     </div>
 
@@ -281,13 +272,12 @@
 
             <div class="win-box">
                 <h1 class="win-title">
-                    <span>🎉</span> Congratulations! <span>🎉</span>
+                    Congratulations!
                 </h1>
 
                 <div class="win-score">
                     <span>Your score is</span>
                     <span class="score-val" id="finalScoreVal">180</span>
-                    <span style="font-size: 34px;">🎊</span>
                 </div>
 
                 <div class="win-btn-layout">
@@ -295,7 +285,6 @@
                     <button class="win-btn btn-retry accessible-target"
                             data-speech="Retry this game"
                             onclick="handleAccessibleClick(this, restartGame)">
-                        <span class="result-action-icon" aria-hidden="true">🔄</span>
                         <span>Retry</span>
                     </button>
 
@@ -304,14 +293,12 @@
                         <button class="win-btn btn-rest accessible-target"
                                 data-speech="Go Home"
                                 onclick="handleAccessibleClick(this, () => goToScreen('screen-start'))">
-                            <span class="result-action-icon" aria-hidden="true">🏠</span>
                             <span>Go Home</span>
                         </button>
 
                         <button class="win-btn btn-continue accessible-target"
                                 data-speech="Next Game"
                                 onclick="handleAccessibleClick(this, continueNextGame)">
-                            <span class="result-action-icon" aria-hidden="true">▶️</span>
                             <span>Next Game</span>
                         </button>
                     </div>
@@ -356,15 +343,15 @@
         <!-- ======================================================== -->
         <div id="screen-staff-dashboard" class="screen staff-screen">
             <div class="screen-top-bar">
-                <div class="home-brand"><span>👥</span> Staff Area</div>
+                <div class="home-brand">Staff Area</div>
                 <div class="screen-title">Dashboard</div>
                 <button class="home-icon-btn" onclick="logoutStaff()">Logout</button>
             </div>
             <div class="staff-content">
                 <p class="prototype-note"><strong>Prototype mode:</strong> Published videos are saved in the configured local library.</p>
                 <div class="dashboard-options">
-                    <button class="staff-option-btn" onclick="openStaffLibrary()">📚 Game Library<small>View and modify games</small></button>
-                    <button class="staff-option-btn" onclick="openAddGame()">➕ Add New Game<small>Upload or record a video</small></button>
+                    <button class="staff-option-btn" onclick="openStaffLibrary()">Game Library<small>View and modify games</small></button>
+                    <button class="staff-option-btn" onclick="openAddGame()">Add New Game<small>Upload or record a video</small></button>
                 </div>
             </div>
         </div>
@@ -438,8 +425,8 @@
             <div class="staff-content">
                 <p class="prototype-note">Choose how to provide the movement video for this prototype game.</p>
                 <div class="add-game-options">
-                    <button class="staff-option-btn" onclick="openUploadVideo()">📁 Upload Video<small>Select a video from this device</small></button>
-                    <button class="staff-option-btn" onclick="openRecordVideo()">🎥 Record a Video<small>Record using your camera</small></button>
+                    <button class="staff-option-btn" onclick="openUploadVideo()">Upload Video<small>Select a video from this device</small></button>
+                    <button class="staff-option-btn" onclick="openRecordVideo()">Record a Video<small>Record using your camera</small></button>
                 </div>
             </div>
         </div>
@@ -456,7 +443,6 @@
             <div class="staff-content">
                 <div class="staff-panel">
                     <div class="file-drop-area">
-                        <p style="font-size: 42px;">📹</p>
                         <p><strong>Select a local video file</strong></p>
                         <label>Exercise mode <select id="uploadBodyMode"><option value="Seated">Seated — shoulders and arms</option><option value="Standing" selected>Standing — full body</option></select></label>
                         <input id="videoFileInput" type="file" accept="video/*" onchange="handleVideoFileSelected(event)" style="margin-top: 15px; user-select: text;">

@@ -497,7 +497,7 @@
                 updateMovementFeedback('Game paused');
                 videoEl.pause();
                 avatarSvg.classList.add('paused');
-                document.getElementById('pauseOverlayTitle').textContent = '⏸️ GAME PAUSED';
+                document.getElementById('pauseOverlayTitle').textContent = 'GAME PAUSED';
                 document.getElementById('pauseOverlayHint').textContent = 'Press Resume when you are ready';
                 pauseOverlay.classList.add('active');
                 btnPauseGame.innerText = 'Resume';
@@ -993,7 +993,7 @@
             clearTimeout(subtitleTimer);
             const sub = document.getElementById('voice-subtitle');
             if (sub) {
-                sub.innerText = "🔊 " + text;
+                sub.innerText = text;
                 sub.style.display = 'block';
             }
         }
