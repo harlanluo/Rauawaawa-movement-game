@@ -103,6 +103,7 @@ export function createPoseScoringSession(referenceData, options = {}) {
     return Object.freeze({
         update,
         getSummary,
+        resetTransient: () => { latest = null; },
         getLatest: () => latest
     });
 }

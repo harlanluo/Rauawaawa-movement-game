@@ -9,6 +9,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/styles.css">
     <script src="js/avatar-pose-controller.js" defer></script>
+    <script src="js/player-language.js" defer></script>
+    <script src="js/player-language-resources.js" defer></script>
     <script src="js/app.js" defer></script>
 </head>
 <body>
@@ -31,10 +33,12 @@
             </div>
             <div class="role-content">
                 <h1 class="role-heading">Kaumātua<br><span class="role-heading-line">Movement Game</span></h1>
+                <label class="draft-language-option"><input id="draftLanguagePreview" type="checkbox" onchange="PlayerLanguage.setPreview(this.checked)"><span data-language-key="Preview draft Māori text">Preview draft Māori text</span></label>
+                <p class="language-review-note" data-language-key="Draft Māori wording awaits Rauawaawa review.">Draft Māori wording awaits Rauawaawa review.</p>
                 <div class="role-options">
                     <button class="role-btn role-kaumatua role-primary accessible-target"
                             data-speech="Start Game"
-                            onclick="handleAccessibleClick(this, () => goToScreen('screen-home'))">
+                            onclick="handleAccessibleClick(this, () => goToScreen('screen-home'))" data-language-key="Start Game">
                         <span>Start Game</span>
                     </button>
                 </div>
@@ -63,25 +67,25 @@
                 </button>
                 <button class="home-icon-btn player-nav-btn accessible-target"
                         data-speech="Back to start page"
-                        onclick="handleAccessibleClick(this, () => goToScreen('screen-start'))">
+                        onclick="handleAccessibleClick(this, () => goToScreen('screen-start'))" data-language-key="Back">
                     <span class="player-nav-icon" aria-hidden="true">←</span>
                     <span>Back</span>
                 </button>
             </div>
 
             <div class="home-content">
-                <h1 class="home-heading player-page-title">Select Your Mode</h1>
+                <h1 class="home-heading player-page-title" data-language-key="Select Your Mode">Select Your Mode</h1>
 
                 <div class="home-btn-group">
                     <button class="home-mode-btn btn-seated accessible-target"
                             data-speech="Seated mode"
-                            onclick="handleAccessibleClick(this, () => openPlaylist('Seated'))">
+                            onclick="handleAccessibleClick(this, () => openPlaylist('Seated'))" data-language-key="Seated">
                         <span class="mode-label">Seated</span>
                     </button>
 
                     <button class="home-mode-btn btn-standing accessible-target"
                             data-speech="Standing mode"
-                            onclick="handleAccessibleClick(this, () => openPlaylist('Standing'))">
+                            onclick="handleAccessibleClick(this, () => openPlaylist('Standing'))" data-language-key="Standing">
                         <span class="mode-label">Standing</span>
                     </button>
                 </div>
@@ -96,15 +100,15 @@
                 <button class="voice-icon-btn player-voice-btn accessible-target"
                         data-speech="Voice Guidance switch"
                         aria-pressed="false"
-                        onclick="handleAccessibleClick(this, toggleVoiceMode)">
+                        onclick="handleAccessibleClick(this, toggleVoiceMode)" data-language-key="Voice: OFF">
                     <span class="voice-text-badge">Voice: OFF</span>
                 </button>
 
-                <div id="playlistHeaderTitle" class="screen-title player-page-title">Seated Playlist</div>
+                <div id="playlistHeaderTitle" class="screen-title player-page-title" data-language-key="Seated Playlist">Seated Playlist</div>
 
                 <button class="home-icon-btn player-nav-btn accessible-target"
                         data-speech="Back to Home"
-                        onclick="handleAccessibleClick(this, () => goToScreen('screen-home'))">
+                        onclick="handleAccessibleClick(this, () => goToScreen('screen-home'))" data-language-key="Home">
                     <span>Home</span>
                 </button>
             </div>
@@ -124,7 +128,7 @@
                     <button class="voice-icon-btn player-voice-btn accessible-target"
                             data-speech="Voice Guidance switch"
                             aria-pressed="false"
-                            onclick="handleAccessibleClick(this, toggleVoiceMode)">
+                            onclick="handleAccessibleClick(this, toggleVoiceMode)" data-language-key="Voice: OFF">
                         <span class="voice-text-badge">Voice: OFF</span>
                     </button>
                 </div>
@@ -133,7 +137,7 @@
 
                 <div class="game-score-wrap">
                     <div class="status-pill score">
-                        <span>Score: <span id="gameScoreDisplay">180</span></span>
+                        <span data-language-key="Score">Score</span><span id="gameScoreDisplay">0</span>
                     </div>
                 </div>
             </div>
@@ -144,7 +148,7 @@
                 <!-- Left: User Avatar -->
                 <div id="avatarPanel" class="stage-avatar-panel" data-tracking="stopped">
                     <pre id="poseDebugPanel" class="pose-debug-panel" hidden></pre>
-                    <div class="avatar-label">User Avatar</div>
+                    <div class="avatar-label" data-language-key="User Avatar">User Avatar</div>
 
                     <div class="avatar-svg-wrap">
                         <div class="avatar-wave-rings"></div>
@@ -181,12 +185,7 @@
                         </svg>
                     </div>
                     <div class="avatar-camera-controls">
-                        <div id="movementFeedback" class="movement-feedback" role="status" aria-live="polite" data-rating="idle">Turn camera on to score</div>
-                        <div id="trackingStatus" class="tracking-status" role="status" aria-live="polite" data-state="stopped">Camera off</div>
                         <button id="posePreviewToggle" type="button" class="pose-preview-toggle" aria-pressed="false" hidden disabled>Show camera + skeleton</button>
-                        <button id="cameraToggle" type="button" class="camera-toggle accessible-target"
-                                aria-pressed="false" data-speech="Turn camera on"
-                                onclick="handleAccessibleClick(this, togglePlayerCamera)">Camera: OFF</button>
                     </div>
                 </div>
 
@@ -200,18 +199,20 @@
 
                     <!-- Pause Overlay -->
                     <div id="pauseOverlay" class="pause-overlay">
-                        <span id="pauseOverlayTitle">GAME PAUSED</span>
-                        <span id="pauseOverlayHint" style="font-size: 18px; margin-top: 8px; color: #ffca28;">Press Resume when you are ready</span>
+                        <span id="pauseOverlayTitle" data-language-key="GAME PAUSED">GAME PAUSED</span>
+                        <span id="pauseOverlayHint" style="font-size: 18px; margin-top: 8px; color: #ffca28;" data-language-key="Press Resume when you are ready">Press Resume when you are ready</span>
                     </div>
 
                 </div>
 
             </div>
 
+            <div id="movementFeedback" class="movement-feedback" role="status" aria-live="polite" data-rating="idle" data-language-key="Turn camera on to score">Turn camera on to score</div>
+            <div id="trackingStatus" class="tracking-status" role="status" aria-live="polite" data-state="stopped" data-language-key="Camera off">Camera off</div>
             <!-- Video Timeline -->
             <div class="video-timeline" aria-label="Video playback controls">
                 <span id="videoCurrentTime" class="timeline-time">00:00</span>
-                <label for="videoProgress" class="sr-only">Video progress</label>
+                <label for="videoProgress" class="sr-only" data-language-key="Video progress">Video progress</label>
                 <input id="videoProgress"
                        class="video-progress"
                        type="range"
@@ -223,7 +224,7 @@
                        disabled>
                 <span id="videoDuration" class="timeline-time">00:00</span>
                 <label for="playbackSpeed" class="speed-control">
-                    <span>Speed:</span>
+                    <span data-language-key="Speed:">Speed:</span>
                     <select id="playbackSpeed" aria-label="Playback speed">
                         <option value="0.5">0.5x</option>
                         <option value="0.75">0.75x</option>
@@ -240,25 +241,29 @@
             <div class="game-controls-bar">
                 <button class="ctrl-btn ctrl-quit accessible-target"
                         data-speech="Quit the game"
-                        onclick="handleAccessibleClick(this, quitGame)">
+                        onclick="handleAccessibleClick(this, quitGame)" data-language-key="Quit">
                     Quit
                 </button>
 
                 <button id="btnPauseGame" class="ctrl-btn ctrl-pause accessible-target"
                         data-speech="Pause or resume game"
-                        onclick="handleAccessibleClick(this, togglePauseGame)">
+                        onclick="handleAccessibleClick(this, togglePauseGame)" data-language-key="Pause">
                     Pause
                 </button>
 
+                <button id="cameraToggle" type="button" class="ctrl-btn camera-toggle accessible-target"
+                        aria-pressed="false" data-speech="Turn camera on"
+                        onclick="handleAccessibleClick(this, togglePlayerCamera)" data-language-key="Turn Camera On">Turn Camera On</button>
+
                 <button id="btnFullscreenToggle" class="ctrl-btn ctrl-fullscreen accessible-target"
                         data-speech="Toggle Full Screen view"
-                        onclick="handleAccessibleClick(this, toggleFullscreenMode)">
+                        onclick="handleAccessibleClick(this, toggleFullscreenMode)" data-language-key="Full Screen">
                     Full Screen
                 </button>
 
                 <button id="redFinishBtn" class="ctrl-btn ctrl-finish accessible-target"
                         data-speech="Finish game and view results"
-                        onclick="handleAccessibleClick(this, finishGame)">
+                        onclick="handleAccessibleClick(this, finishGame)" data-language-key="Finish">
                     Finish
                 </button>
             </div>
@@ -271,12 +276,12 @@
             <canvas id="winConfettiCanvas" class="win-confetti-canvas"></canvas>
 
             <div class="win-box">
-                <h1 class="win-title">
+                <h1 class="win-title" data-language-key="Congratulations!">
                     Congratulations!
                 </h1>
 
                 <div class="win-score">
-                    <span>Your score is</span>
+                    <span data-language-key="Your score is">Your score is</span>
                     <span class="score-val" id="finalScoreVal">180</span>
                 </div>
 
@@ -284,7 +289,7 @@
                     <!-- Top Retry Button -->
                     <button class="win-btn btn-retry accessible-target"
                             data-speech="Retry this game"
-                            onclick="handleAccessibleClick(this, restartGame)">
+                            onclick="handleAccessibleClick(this, restartGame)" data-language-key="Retry">
                         <span>Retry</span>
                     </button>
 
@@ -292,13 +297,13 @@
                     <div class="win-btn-row">
                         <button class="win-btn btn-rest accessible-target"
                                 data-speech="Go Home"
-                                onclick="handleAccessibleClick(this, () => goToScreen('screen-start'))">
+                                onclick="handleAccessibleClick(this, () => goToScreen('screen-start'))" data-language-key="Go Home">
                             <span>Go Home</span>
                         </button>
 
                         <button class="win-btn btn-continue accessible-target"
                                 data-speech="Next Game"
-                                onclick="handleAccessibleClick(this, continueNextGame)">
+                                onclick="handleAccessibleClick(this, continueNextGame)" data-language-key="Next Game">
                             <span>Next Game</span>
                         </button>
                     </div>
@@ -542,6 +547,18 @@
                 </div>
             </div>
         </div>
+
+
+        <dialog id="voiceLanguageDialog" aria-labelledby="voiceLanguageTitle">
+            <h2 id="voiceLanguageTitle" data-language-key="Choose voice language">Choose voice language</h2>
+            <p id="maoriVoiceNotice" role="status" data-language-key="Māori speech awaits approval. Choose English for spoken guidance.">Māori speech awaits approval. Choose English for spoken guidance.</p>
+            <div class="voice-language-choices">
+                <button id="voiceEnglish" class="accessible-target" data-language-key="English" onclick="handleAccessibleClick(this, () => selectVoiceLanguage('en'))">English</button>
+                <button id="voiceMaori" class="accessible-target" data-language-key="Māori" onclick="handleAccessibleClick(this, () => selectVoiceLanguage('mi'))">Māori</button>
+            </div>
+            <button class="accessible-target" data-language-key="Turn Voice Guidance Off" onclick="handleAccessibleClick(this, turnVoiceOff)">Turn Voice Guidance Off</button>
+            <button class="accessible-target" data-language-key="Close" onclick="handleAccessibleClick(this, closeVoicePanel)">Close</button>
+        </dialog>
 
         <!-- Voice Guidance Subtitle Bar -->
         <div id="voice-subtitle"></div>

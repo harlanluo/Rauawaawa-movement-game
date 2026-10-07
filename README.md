@@ -61,11 +61,21 @@ Use the separate [Python extraction tool](tools/reference-pose/README.md) to gen
 
 The [reference pose visualizer](https://team-koru.netlify.app/tools/reference-pose/visualizer.html) is a developer and QA tool. It displays the pre-generated reference landmarks over the source video and does not run MediaPipe inference itself. Run it locally at `http://localhost:8000/tools/reference-pose/visualizer.html`.
 
+## Player layout, language and seeking
+
+Each game, Retry and Next Game starts in the existing video-only Full Screen layout with Camera OFF. Show User Avatar restores the avatar; Full Screen hides it again without touching Camera or score. The single Camera control sits immediately after Start / Pause / Resume in the bottom bar. Starting requests permission only after explicit activation (two clicks with Voice Guidance ON); Cancel Camera Start cancels preparation. Camera can be prepared before Start without starting the exercise or awarding points.
+
+Player controls and messages use `js/player-language.js` and `js/player-language-resources.js`. No Māori wording is approved yet: normal behavior uses English. Opt into the review-only bilingual preview using the start-page checkbox or `?draftLanguage=1`. Māori appears above readable English; larger buttons wrap and shorter screens scroll. Staff remains English. Optional `nameMi` and `descriptionMi` metadata is displayed only with `languageApproval: 'approved'`; source content stays intact otherwise. See [the review inventory](docs/player-language-review.md) for wording, scripts and approval gaps.
+
+Voice Guidance opens an English / Māori selection dialog, and reopens it for changes while ON. Controls and reselection choices use first-click speech, second-click confirmation. Close/Escape preserves the previous state; Turn Voice Guidance Off disables it explicitly. No approved Māori voice or recordings were supplied, so Māori selection explains the limitation and offers an explicit English choice. Device language tags are not pronunciation approval.
+
+Seeking suspends scoring and invalidates pending poses/comparison feedback while preserving the best result for every 500 ms checkpoint. Native seeks, pointer dragging and keyboard changes share the same protection; fresh post-seek capture context is required. Forward seeks do not fill skipped checkpoints, replay improves only an existing checkpoint's best, and paused seeking never starts playback. Finish/Quit/Retry/Next isolate sessions and camera callbacks.
+
 ## Pose comparison
 
 `js/pose-comparison.js` provides a reusable pure comparison module. It normalizes reference and player landmarks around the hips/torso, compares major arm, leg, hand, foot, and torso features, skips low-visibility features, and returns a structured result with `similarity`, `rating`, and sorted feedback. Missing reference samples are skipped, and insufficient player-camera information is reported separately from bad movement.
 
-`js/pose-scoring.js` connects comparison to the stored reference timeline. During gameplay it searches within 300 ms of the demonstration time, uses the best valid comparison in that window, and keeps the best result in each 500 ms scoring segment. Each valid segment adds up to 10 points, so the visible game score only increases; average similarity remains available in the scoring summary for diagnostics. Reference gaps, camera-off time, and insufficient player visibility do not add a score sample. Good / Almost / Keep moving feedback appears below the avatar. These timings and thresholds are prototype values and still require representative user testing.
+`js/pose-scoring.js` connects comparison to the stored reference timeline. During gameplay it searches within 300 ms of the demonstration time, uses the best valid comparison in that window, and keeps the best result in each 500 ms scoring segment. Each valid segment adds up to 10 points, so the visible game score only increases; average similarity remains available in the scoring summary for diagnostics. Reference gaps, camera-off time, and insufficient player visibility do not add a score sample. Good / Almost / Keep moving feedback and tracking status appear outside the avatar panel, including the video-only layout. These timings and thresholds are prototype values and still require representative user testing.
 
 The selected play mode changes the body requirements. Seated mode normalizes around the shoulders and scores upper-body joints without requiring hips or legs in frame. Standing mode uses shoulder and hip anchors and includes lower-body features when reliable.
 
@@ -94,7 +104,7 @@ For device tests, inspect `window.playerPoseTracking.getDiagnostics()` and `getL
 Run the controlled lifecycle tests with a recent Node.js version (no npm dependencies):
 
 ```bash
-node --experimental-vm-modules --test --test-isolation=none tests/pose-comparison.test.mjs tests/pose-scoring.test.mjs tests/pose-tracker.test.cjs
+node --experimental-vm-modules --test --test-isolation=none tests/pose-comparison.test.mjs tests/pose-scoring.test.mjs tests/pose-tracker.test.cjs tests/player-language.test.cjs
 ```
 
 These tests use mock camera/model inputs; real webcam permission, detection quality, performance, and the hardware camera indicator still need device testing.

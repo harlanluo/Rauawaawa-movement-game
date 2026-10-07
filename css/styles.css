@@ -1430,3 +1430,51 @@
 
 /* Respect hidden state for processing steps and embedded previews. */
 [hidden] { display: none !important; }
+
+        /* Two readable language lines and forgiving touch targets for kaumātua. */
+        .language-mi, .language-en { display: block; white-space: normal; line-height: 1.25; }
+        .language-mi { font-size: 1em; }
+        .language-en { font-size: max(18px, 0.75em); }
+        .language-en:only-child { font-size: max(18px, 1em); }
+        #screen-start.active, #screen-home.active, #screen-playlist.active,
+        #screen-game.active, #screen-win.active { overflow-y: auto; }
+        .game-controls-bar { flex-wrap: wrap; flex-shrink: 0; }
+        .game-controls-bar .ctrl-btn { flex: 1 1 180px; min-height: 88px; padding: 12px 18px; flex-direction: column; }
+        .player-voice-btn, .player-nav-btn { height: auto; min-height: 80px; flex-shrink: 0; }
+        .game-controls-bar .camera-toggle { color: #17232f; background: #9fd8c3; }
+        #screen-game > .movement-feedback, #screen-game > .tracking-status {
+            position: static; margin: 0; padding: 4px 12px; text-align: center; flex-shrink: 0;
+        }
+        .draft-language-option { display: flex; gap: 12px; align-items: center; font-size: 18px; margin: 12px; }
+        .draft-language-option input { width: 28px; height: 28px; }
+        .language-review-note { font-size: 18px; max-width: 700px; margin: 8px auto; }
+        #voiceLanguageDialog { margin: auto; padding: 24px; border-radius: 20px; max-width: min(700px, 95vw); max-height: 90dvh; overflow: auto; }
+        #voiceLanguageDialog::backdrop { background: #18212dcc; }
+        #voiceLanguageDialog h2 { font-size: 30px; }
+        #voiceLanguageDialog p { font-size: 20px; margin: 16px 0; }
+        #voiceLanguageDialog button { min-height: 88px; padding: 16px; margin: 6px; border-radius: 14px; font-size: 26px; }
+        .voice-language-choices { display: flex; flex-wrap: wrap; }
+        .voice-language-choices button { flex: 1 1 200px; }
+        button:focus-visible, input:focus-visible, select:focus-visible { outline: 4px solid #8a4900; outline-offset: 3px; }
+
+
+        button[data-language-key] { flex-direction: column; }
+        #screen-game > .movement-feedback { display: block; }
+        #screen-game > .tracking-status { display: block; }
+        #screen-game > .tracking-status::before { display: none; }
+        .game-header-left { min-width: 0; }
+        .game-header-left .player-voice-btn { max-width: 100%; }
+        .screen.active .player-page-title { overflow-wrap: anywhere; }
+        #screen-game .game-stage-container { min-height: 260px; flex-shrink: 0; }
+        #screen-game .pause-overlay { padding: 16px; text-align: center; }
+
+        .game-grid-btn { height: auto; flex-direction: column; white-space: normal; }
+        .game-card-description { display: block; font-family: 'Nunito', sans-serif; font-size: 18px; line-height: 1.3; margin-top: 8px; }
+        #screen-start .role-content {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            gap: 16px; min-height: min-content; overflow: visible; padding: 130px 24px 28px;
+        }
+        #screen-start .role-heading { align-self: center; }
+        #screen-start .role-options { align-self: center; }
+        #screen-start .role-secondary { position: static; align-self: flex-end; flex-shrink: 0; }
+        #screen-start .role-primary > .language-en { white-space: normal; }
