@@ -110,6 +110,8 @@ node --experimental-vm-modules --test --test-isolation=none tests/pose-compariso
 These tests use mock camera/model inputs; real webcam permission, detection quality, performance, and the hardware camera indicator still need device testing.
 
 
+Player pages use one selected written language with large typography and controls for older users. The English / Māori switch remains below Voice Guidance. Short screens can scroll vertically to preserve readable controls and video content. See [player UI readability review](docs/player-ui-accessibility-review.md) for the font sizes, responsive checks and user/device validation still needed.
+
 ## Optional Python backend
 
 Use the Python extraction environment for the integrated upload preview:

@@ -30,6 +30,12 @@ Served with `python -m http.server 8000 --bind 127.0.0.1`. Used the in-app brows
 - Voice OFF → panel: English/Māori choices, close and explicit OFF actions are visible. Māori selection closes the panel and enables guidance without approval. With no device Māori voice it retains Māori selection and text prompts; a device-availability notice offers English audio explicitly. English selection enables guidance. First Resume click speaks/displays its prompt and confirmation; second click resumes. With written Māori and spoken English, first language-switch click keeps Māori and displays confirmation, second selects English and clears subtitles/focus; the voice panel still shows English selected. Speech text/subtitle behavior was observed; pronunciation or audible voice quality was not certified.
 - Finish → results → Retry and Finish → Next: each new game is ready with zero score, Camera OFF and avatar hidden. Quit returns to playlist. Staff entry/navigation stays English.
 
+## Older-player readability follow-up
+
+After baseline `2692b8835e0cf6cad1932ca53f2e5934d2d3fd95`, enlarged player typography and interaction targets across start, mode, playlist, game, results and voice dialog. Fixed enlarged-header/card overlap, inaccessible first playlist row, narrow result overflow and old Back-button size overrides. Dark labels improve bright-button contrast. Short screens may scroll vertically to retain readable controls; the source video stays contained and the hidden status bars remain absent. Earlier stage measurements above describe the preceding revision rather than the final larger-header layout.
+
+The full Node command above was rerun: 58 passed, zero failures. Diff whitespace checks passed. Actual responsive browser screenshots were inspected, including avatar split and selected-language labels. See [the detailed UI review](player-ui-accessibility-review.md) for font/target sizes, observed viewports and remaining device/user-testing limits.
+
 ## Remaining acceptance limits
 
 No physical-camera scoring, real-user/kaumātua testing, tablet hardware permission grant or approved Māori pronunciation test was performed. Controlled pose/capture tests do not establish device performance. Written Māori, speech scripts, exercise metadata, number wording and voice delivery await separate human review in `player-language-review.md`.

@@ -1515,3 +1515,137 @@
             #screen-game .pause-overlay { font-size: 24px; }
             #screen-start .role-heading-line { white-space: normal; }
         }
+
+/* Player readability: size single-language controls for older users, not two-line copy. */
+:root {
+    --player-button-font-size: clamp(1.75rem, 1.5rem + 0.6vw, 2.125rem);
+    --player-page-title-size: clamp(3rem, 2.5rem + 1.5vw, 4rem);
+    --playlist-card-title-size: clamp(2.5rem, 2rem + 1vw, 3rem);
+    --playlist-card-secondary-size: 1.5rem;
+    --player-touch-target-height: 4.5rem;
+}
+.player-language-controls { gap: 12px; }
+.player-language-controls .player-voice-btn, .interface-language-btn {
+    min-height: 72px; padding: 12px 20px;
+    font-size: var(--player-button-font-size); line-height: 1.25;
+}
+.player-language-controls .player-voice-btn { color: #101820; }
+.player-nav-btn { font-size: var(--player-button-font-size); min-height: 80px; }
+.game-header-bar { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); padding: 16px 28px; gap: 20px; flex-shrink: 0; }
+.game-title-display { font-size: clamp(2.75rem, 2rem + 1.5vw, 4rem); line-height: 1.2; }
+.game-header-bar .status-pill { font-size: clamp(2rem, 1.6rem + 0.6vw, 2.5rem); padding: 12px 20px; gap: 12px; }
+#gameScoreDisplay { font-size: clamp(3rem, 2.5rem + 1vw, 4rem); line-height: 1.1; }
+.game-controls-bar .ctrl-btn { font-size: clamp(2.25rem, 2rem + 0.6vw, 2.75rem); min-height: 104px; flex-basis: 190px; line-height: 1.25; color: #101820; }
+.camera-control-group { flex-basis: 190px; }
+.camera-control-group .ctrl-btn { flex: none; }
+.video-timeline { flex-shrink: 0; min-height: 88px; }
+.timeline-time, .speed-control, .speed-control select { font-size: 1.5rem; }
+.speed-control select { min-height: 60px; }
+#screen-game .pause-overlay { font-size: clamp(2rem, 1.5rem + 1vw, 2.75rem); line-height: 1.3; }
+#pauseOverlayHint { font-size: 1.5rem; line-height: 1.4; }
+.avatar-label, .camera-error, .game-card-description { font-size: 1.5rem; line-height: 1.4; }
+#voice-subtitle { font-size: 1.75rem; line-height: 1.4; max-width: calc(100% - 32px); }
+#voiceLanguageDialog h2 { font-size: 2.25rem; }
+#voiceLanguageDialog p { font-size: 1.5rem; line-height: 1.4; }
+#voiceLanguageDialog button { font-size: 1.875rem; min-height: 96px; }
+#screen-start .role-secondary { font-size: 1.75rem; min-height: 96px; }
+#screen-start .role-secondary small { font-size: 1.25rem; }
+#screen-start .role-primary, .home-mode-btn { color: #101820; }
+.home-content { padding-top: 210px; }
+#screen-start .role-content { padding-top: 210px; padding-bottom: 150px; }
+.win-title { font-size: clamp(3rem, 2.5rem + 1vw, 4rem); }
+.win-score { font-size: 2.5rem; flex-wrap: wrap; justify-content: center; }
+.win-score .score-val { font-size: 4rem; }
+.win-btn { font-size: 2rem; min-height: 96px; color: #101820; }
+.win-btn-row { flex-wrap: wrap; }
+.win-box { max-width: 100%; padding: 24px; }
+@media (max-width: 1100px) {
+    .game-controls-bar { gap: 12px; padding: 12px; }
+    .game-controls-bar .ctrl-btn, .camera-control-group { flex-basis: 165px; }
+    .game-title-display { font-size: 2.75rem; }
+    .game-header-bar .status-pill { font-size: 2rem; padding: 10px 12px; }
+    .game-header-bar { padding: 12px; gap: 12px; }
+    .timeline-time, .speed-control, .speed-control select { font-size: 1.5rem; }
+}
+@media (max-width: 700px) {
+    .game-header-bar { grid-template-columns: minmax(0, 1fr) auto; }
+    .game-title-display { grid-column: 1 / -1; grid-row: 1; font-size: 2.5rem; }
+    .game-header-left { grid-column: 1; grid-row: 2; }
+    .game-score-wrap { grid-column: 2; grid-row: 2; }
+    .game-header-bar .status-pill { flex-direction: column; font-size: 1.75rem; gap: 4px; }
+    #gameScoreDisplay { font-size: 3rem; }
+    .player-language-controls .player-voice-btn, .interface-language-btn { font-size: 1.625rem; padding: 12px; }
+    .player-nav-btn { font-size: 1.75rem; }
+    .game-controls-bar .ctrl-btn { font-size: 1.75rem; }
+    .game-controls-bar .ctrl-btn, .camera-control-group { flex-basis: 145px; }
+    .video-timeline { flex-wrap: wrap; }
+    .timeline-time { min-width: 62px; }
+    .start-top, .home-top { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; }
+    .start-top .home-brand, .home-top .home-brand { grid-column: 1 / -1; max-width: none; font-size: 1.75rem; }
+    .start-top .player-language-controls { grid-column: 1 / -1; }
+    .home-content { padding-top: 300px; }
+    #screen-start .role-content { padding-top: 300px; }
+    #screen-playlist .screen-top-bar .player-page-title { font-size: 2.5rem; }
+    #screen-game .game-stage-container { min-height: 240px; flex-shrink: 0; }
+    #screen-playlist .screen-top-bar .player-language-controls { max-width: 100%; }
+}
+
+/* Header and primary actions must keep their space when text wraps. */
+#screen-playlist .screen-top-bar { height: auto; min-height: 188px; flex-shrink: 0; padding: 16px 28px; gap: 20px; }
+#screen-playlist .screen-title { min-width: 0; white-space: normal; overflow-wrap: anywhere; }
+#screen-start .role-primary { font-size: clamp(2.75rem, 2.5rem + 1vw, 3.5rem); }
+.home-mode-btn { font-size: clamp(3rem, 2.5rem + 1vw, 3.75rem); }
+#screen-game .game-stage-container { min-height: clamp(260px, 40vh, 360px); }
+@media (max-width: 700px) {
+    #screen-playlist .screen-top-bar { padding: 12px; gap: 12px; }
+    #screen-playlist .screen-top-bar .player-page-title { flex: 1 1 100%; text-align: center; }
+    #screen-playlist .screen-top-bar .player-nav-btn { margin-left: auto; }
+    #screen-start .role-primary { font-size: 2.75rem; }
+    .home-mode-btn { font-size: 3rem; }
+}
+
+.game-title-display { max-width: 40vw; }
+.camera-control-group, .game-controls-bar .ctrl-fullscreen { flex-grow: 1.4; }
+@media (min-width: 701px) and (max-width: 1100px) {
+    .game-controls-bar .ctrl-btn { font-size: 2rem; flex-basis: 140px; }
+    .camera-control-group, .game-controls-bar .ctrl-fullscreen { flex-basis: 220px; }
+    .camera-control-group .ctrl-btn { flex: none; }
+}
+@media (max-width: 700px) {
+    .game-title-display { max-width: 100%; }
+    .camera-control-group, .game-controls-bar .ctrl-fullscreen { flex-grow: 1; }
+}
+.game-grid-btn:hover { transform: none; }
+
+.player-nav-btn { background: #536c77; color: #fff; }
+@media (max-width: 700px) {
+    #screen-game .fullscreen-active .stage-video-panel { min-height: 260px; }
+    #screen-game .pause-overlay { font-size: 1.75rem; }
+    #pauseOverlayHint { font-size: 1.375rem; }
+    .home-btn-group { flex-direction: column; gap: 24px; }
+    .home-mode-btn { flex: none; width: 100%; min-height: 144px; }
+}
+
+.home-top .player-nav-btn { font-size: var(--player-button-font-size); min-height: 80px; padding: 12px 20px; }
+.playlist-wrap { justify-content: flex-start; min-height: 0; padding-top: 24px; }
+.playlist-grid { flex-shrink: 0; }
+@media (max-width: 700px) {
+    .home-top .player-nav-btn { font-size: 1.75rem; padding: 12px; }
+    .playlist-grid { grid-template-columns: minmax(0, 1fr); }
+    #screen-playlist .screen-top-bar { display: grid; grid-template-columns: minmax(0, 1fr) auto; }
+    #screen-playlist .screen-top-bar .player-language-controls { grid-column: 1; grid-row: 1; }
+    #screen-playlist .screen-top-bar .player-nav-btn { grid-column: 2; grid-row: 1; }
+    #screen-playlist .screen-top-bar .player-page-title { grid-column: 1 / -1; grid-row: 2; }
+}
+
+:root { --timeline-thumb-size: 3rem; }
+.video-progress { min-height: 60px; }
+.video-progress:focus-visible, .speed-control select:focus-visible { outline-color: #8a4900; }
+.win-title { display: block; max-width: 100%; overflow-wrap: anywhere; line-height: 1.25; }
+.win-score .score-val { color: #923900; }
+.game-grid-btn { border-color: #007e63; }
+.player-language-controls .player-voice-btn { border-color: #8a4900; }
+
+.home-mode-btn:hover, .game-controls-bar .ctrl-btn:hover, .win-btn:hover { transform: none; }
+
+@media (max-width: 700px) { .win-title { font-size: 2.5rem; hyphens: auto; } }
